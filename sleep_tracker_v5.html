@@ -1,0 +1,1069 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --blue: #317DFF;
+  --yellow: #FFD530;
+  --orange: #FF9617;
+  --slate: #586680;
+
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface2: #edf1f7;
+  --border: rgba(49,125,255,0.10);
+  --text: #0f1a2e;
+  --muted: #586680;
+
+  --grade-a:  #1a6b2e; --grade-a-bg: #d4f0dc;
+  --grade-b:  #2e7d3f; --grade-b-bg: #e6f5eb;
+  --grade-c:  #7a6000; --grade-c-bg: #fff3b0;
+  --grade-d:  #b85800; --grade-d-bg: #ffe8cc;
+  --grade-f:  #a01f1f; --grade-f-bg: #fde0e0;
+
+  --heat-0:     #dde3ed;
+  --heat-on:    #1a6b2e;
+  --heat-close: #FFD530;
+  --heat-off:   #FF9617;
+  --heat-miss:  #e03b3b;
+
+  /* Text color on each heat square */
+  --heat-on-num:    #ffffff;
+  --heat-close-num: #586680;
+  --heat-off-num:   #ffffff;
+  --heat-miss-num:  #ffffff;
+  --heat-0-num:     #586680;
+
+  --font: 'Geist', sans-serif;
+}
+
+[data-dark="true"] {
+  --bg: #0d1320;
+  --surface: #141c2e;
+  --surface2: #1a2540;
+  --border: rgba(49,125,255,0.15);
+  --text: #e8edf5;
+  --muted: #7a8fa8;
+
+  --grade-a:  #6fcf8a; --grade-a-bg: #0d2e18;
+  --grade-b:  #94d9a2; --grade-b-bg: #112618;
+  --grade-c:  #FFD530; --grade-c-bg: #2a2000;
+  --grade-d:  #FF9617; --grade-d-bg: #2a1500;
+  --grade-f:  #f07070; --grade-f-bg: #2a0d0d;
+
+  --heat-0:     #1a2540;
+  --heat-on:    #3b6d11;
+  --heat-close: #c9a400;
+  --heat-off:   #c97200;
+  --heat-miss:  #991f1f;
+
+  --heat-on-num:    #ffffff;
+  --heat-close-num: #ffffff;
+  --heat-off-num:   #ffffff;
+  --heat-miss-num:  #ffffff;
+  --heat-0-num:     #7a8fa8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+}
+
+#root { max-width: 620px; margin: 0 auto; padding-bottom: 24px; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 12px;
+}
+
+.wordmark {
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wordmark-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+  margin-bottom: 2px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hdr-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.toggle-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 17px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn:hover { background: var(--surface); color: var(--blue); }
+
+.tabs {
+  display: flex;
+  margin: 0 16px 14px;
+  border-bottom: 2px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 6px;
+  text-align: center;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.tab.on { color: var(--blue); border-bottom-color: var(--yellow); }
+
+.page { display: none; padding: 0 16px 8px; }
+.page.on { display: block; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 12px;
+}
+
+.card-label {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.field-head {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.field-block { margin-bottom: 14px; }
+
+input[type=time] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--text);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+input[type=time]:focus { border-color: var(--blue); }
+input[type=time]::-webkit-calendar-picker-indicator { opacity: 0.35; cursor: pointer; }
+
+.offset-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.offset-card {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.offset-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.offset-card-value {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.btn-log {
+  width: 100%;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-log:active { transform: scale(0.98); opacity: 0.88; }
+
+.today-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.today-pip { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; }
+.today-text { font-family: var(--font); font-weight: 700; font-size: 14px; color: var(--text); }
+.today-sub  { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 1px; }
+
+.toast-wrap {
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  height: 34px;
+  align-items: center;
+}
+
+.toast-pill {
+  background: var(--blue);
+  color: #fff;
+  border-radius: 20px;
+  padding: 6px 20px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.22s, transform 0.22s;
+}
+
+.toast-pill.show { opacity: 1; transform: translateY(0); }
+
+.grade-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 4px 0 8px;
+}
+
+.grade-bubble {
+  width: 78px;
+  height: 78px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 44px;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+}
+
+.grade-title { font-family: var(--font); font-weight: 800; font-size: 20px; letter-spacing: -0.3px; margin-bottom: 3px; }
+.grade-sub   { font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-num {
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+.stat-num.yellow { color: var(--yellow); }
+
+.stat-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+}
+
+.week-strip { display: flex; gap: 6px; }
+
+.week-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.week-day-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* Heat cells — number color set via data attribute + CSS vars */
+.heat-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.heat-cell:hover { transform: scale(1.1); }
+
+.heat-cell-num {
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Calendar */
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cal-month-title {
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+
+.cal-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 16px;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.cal-arrow:hover { background: var(--blue); color: #fff; }
+.cal-arrow.disabled { opacity: 0.3; pointer-events: none; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  padding-bottom: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 9px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.cal-day.logged { cursor: pointer; }
+.cal-day.logged:hover { transform: scale(1.08); }
+
+.cal-day-num {
+  font-family: var(--font);
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.tt {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 99;
+  pointer-events: none;
+}
+
+.heat-cell:hover .tt,
+.cal-day.logged:hover .tt { display: block; }
+
+.legend-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.legend-swatch { width: 13px; height: 13px; border-radius: 4px; }
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row:last-child { border-bottom: none; }
+.setting-key  { font-family: var(--font); font-weight: 700; font-size: 14px; color: var(--text); }
+.setting-hint { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+
+input.set-inp {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  width: 110px;
+  text-align: right;
+  transition: border-color 0.15s;
+}
+
+input.set-inp:focus { border-color: var(--blue); }
+input.set-inp::-webkit-calendar-picker-indicator { opacity: 0.35; cursor: pointer; }
+
+.btn-save {
+  width: 100%;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.btn-save:active { transform: scale(0.98); opacity: 0.88; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="topbar">
+    <div class="wordmark">sleepy<div class="wordmark-dot"></div></div>
+    <div class="topbar-right">
+      <div class="hdr-date" id="hdr-date"></div>
+      <div class="toggle-btn" id="dark-toggle" onclick="toggleDark()">
+        <i class="ti ti-moon" id="toggle-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on"  onclick="nav('log')">Log</div>
+    <div class="tab"     onclick="nav('dash')">Dashboard</div>
+    <div class="tab"     onclick="nav('history')">History</div>
+    <div class="tab"     onclick="nav('settings')">Settings</div>
+  </div>
+
+  <div id="page-log" class="page on">
+    <div class="card">
+      <div class="card-label">Tonight's log</div>
+      <div class="field-block">
+        <div class="field-head">Bedtime</div>
+        <input type="time" id="inp-sleep" value="23:00">
+      </div>
+      <div class="field-block">
+        <div class="field-head">Wake time</div>
+        <input type="time" id="inp-wake" value="07:00">
+      </div>
+      <div class="offset-cards">
+        <div class="offset-card">
+          <div class="offset-card-label">Bedtime</div>
+          <div class="offset-card-value" id="oc-sleep"><span style="color:var(--muted)">—</span></div>
+        </div>
+        <div class="offset-card">
+          <div class="offset-card-label">Wake</div>
+          <div class="offset-card-value" id="oc-wake"><span style="color:var(--muted)">—</span></div>
+        </div>
+        <div class="offset-card">
+          <div class="offset-card-label">Duration</div>
+          <div class="offset-card-value" id="oc-dur"><span style="color:var(--muted)">—</span></div>
+        </div>
+      </div>
+      <button class="btn-log" onclick="logEntry()">Log sleep</button>
+      <div id="today-logged"></div>
+    </div>
+    <div class="toast-wrap"><div class="toast-pill" id="toast">Logged!</div></div>
+  </div>
+
+  <div id="page-dash" class="page">
+    <div class="card" id="grade-card"></div>
+    <div class="stats-row" id="stats-row"></div>
+    <div class="card">
+      <div class="card-label">This week</div>
+      <div class="week-strip" id="week-strip"></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-on)"></div>On target</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-close)"></div>Close</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-off)"></div>Off</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-miss)"></div>Miss</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-0)"></div>No data</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-history" class="page">
+    <div class="card">
+      <div class="cal-nav">
+        <div class="cal-arrow" id="cal-prev" onclick="calShift(-1)"><i class="ti ti-chevron-left"></i></div>
+        <div class="cal-month-title" id="cal-title"></div>
+        <div class="cal-arrow" id="cal-next" onclick="calShift(1)"><i class="ti ti-chevron-right"></i></div>
+      </div>
+      <div class="cal-grid" id="cal-dow-row"></div>
+      <div class="cal-grid" id="cal-body" style="margin-top:5px;"></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-on)"></div>On target</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-close)"></div>Close</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-off)"></div>Off</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--heat-miss)"></div>Miss</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-settings" class="page">
+    <div class="card">
+      <div class="card-label">Targets</div>
+      <div class="setting-row">
+        <div><div class="setting-key">Target bedtime</div><div class="setting-hint">When you want to be asleep</div></div>
+        <input type="time" class="set-inp" id="set-sleep" value="23:00">
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-key">Target wake time</div><div class="setting-hint">When you want to wake up</div></div>
+        <input type="time" class="set-inp" id="set-wake" value="07:00">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Tolerance bands</div>
+      <div class="setting-row">
+        <div><div class="setting-key">On target</div><div class="setting-hint">Within this many minutes</div></div>
+        <input type="number" class="set-inp" id="set-good" value="15" min="5" max="60" step="5">
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-key">Close</div><div class="setting-hint">Within this many minutes</div></div>
+        <input type="number" class="set-inp" id="set-ok" value="30" min="10" max="90" step="5">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Data</div>
+      <div class="setting-row">
+        <div><div class="setting-key">Clear all entries</div><div class="setting-hint">Cannot be undone</div></div>
+        <button onclick="clearAll()" style="background:var(--grade-f-bg);color:var(--grade-f);border:none;border-radius:8px;padding:8px 14px;font-family:var(--font);font-weight:700;font-size:13px;cursor:pointer;">Clear</button>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Save settings</button>
+  </div>
+</div>
+
+<script>
+const KEY = 'sleepy_v5';
+
+// ── Helpers ──────────────────────────────────────────
+function toMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function calcOffset(actual, target) {
+  let d = toMins(actual) - toMins(target);
+  if (d >  720) d -= 1440;
+  if (d < -720) d += 1440;
+  return d;
+}
+function calcDur(s, w) {
+  let d = toMins(w) - toMins(s);
+  if (d < 0) d += 1440;
+  return d;
+}
+function worstOff(e, cfg) {
+  return Math.max(
+    Math.abs(calcOffset(e.sleep, cfg.targetSleep)),
+    Math.abs(calcOffset(e.wake,  cfg.targetWake))
+  );
+}
+
+// Returns { bg, numColor } for a heat level
+function heatStyle(e, cfg) {
+  const w = worstOff(e, cfg);
+  if (w <= cfg.threshGood)   return { bg: 'var(--heat-on)',    num: 'var(--heat-on-num)' };
+  if (w <= cfg.threshOk)     return { bg: 'var(--heat-close)', num: 'var(--heat-close-num)' };
+  if (w <= cfg.threshOk * 2) return { bg: 'var(--heat-off)',   num: 'var(--heat-off-num)' };
+  return                             { bg: 'var(--heat-miss)',  num: 'var(--heat-miss-num)' };
+}
+
+function heatLabel(e, cfg) {
+  const w = worstOff(e, cfg);
+  if (w <= cfg.threshGood)   return 'On target';
+  if (w <= cfg.threshOk)     return 'Close';
+  if (w <= cfg.threshOk * 2) return 'Off';
+  return 'Miss';
+}
+
+function fmt12(t) {
+  const m = ((toMins(t) % 1440) + 1440) % 1440;
+  const hh = Math.floor(m / 60), mm = m % 60;
+  return `${hh % 12 || 12}:${String(mm).padStart(2,'0')} ${hh >= 12 ? 'pm' : 'am'}`;
+}
+
+function score7(entries, cfg) {
+  const last7 = entries.slice(-7);
+  if (!last7.length) return null;
+  let pts = 0;
+  last7.forEach(e => {
+    const w = worstOff(e, cfg);
+    if (w <= cfg.threshGood)        pts += 4;
+    else if (w <= cfg.threshOk)     pts += 2;
+    else if (w <= cfg.threshOk * 2) pts += 1;
+  });
+  return pts / (last7.length * 4);
+}
+
+function toGrade(pct) {
+  if (pct === null)  return null;
+  if (pct >= 0.88)   return 'A';
+  if (pct >= 0.70)   return 'B';
+  if (pct >= 0.50)   return 'C';
+  if (pct >= 0.30)   return 'D';
+  return 'F';
+}
+
+const GRADES = {
+  A: { title:'Excellent',     sub:'Nailing your targets consistently', bg:'var(--grade-a-bg)', fg:'var(--grade-a)' },
+  B: { title:'Good',          sub:'Mostly on track this week',          bg:'var(--grade-b-bg)', fg:'var(--grade-b)' },
+  C: { title:'Getting there', sub:'Some room to tighten up',            bg:'var(--grade-c-bg)', fg:'var(--grade-c)' },
+  D: { title:'Needs work',    sub:'Consistency is drifting',            bg:'var(--grade-d-bg)', fg:'var(--grade-d)' },
+  F: { title:'Rough week',    sub:'Worth revisiting your targets',      bg:'var(--grade-f-bg)', fg:'var(--grade-f)' },
+};
+
+function streakCount(entries, cfg) {
+  let s = 0;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (worstOff(entries[i], cfg) <= cfg.threshGood) s++;
+    else break;
+  }
+  return s;
+}
+
+function avgDur(entries) {
+  if (!entries.length) return null;
+  const r = entries.slice(-7);
+  return Math.round(r.reduce((a, e) => a + calcDur(e.sleep, e.wake), 0) / r.length);
+}
+
+// ── Sample data ───────────────────────────────────────
+function sampleData() {
+  const offs  = [-5,20,-18,35,-8,12,-25,40,-10,5,-30,15,-5,22,-15,8,28,-12,5,-20,10,-35,18,-8,25,-5,12,-22,8,-10];
+  const woffs = [10,-15,20,-8,5,-25,12,30,-10,15,-5,20,-18,8,25,-12,5,-30,10,-5,22,-10,15,-20,8,12,-8,18,-15,5];
+  const entries = [];
+  const now = new Date();
+  for (let i = 29; i >= 1; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const date = d.toISOString().split('T')[0];
+    const sm = ((23*60 + (offs[29-i]||0))  + 1440) % 1440;
+    const wm = ((7*60  + (woffs[29-i]||0)) + 1440) % 1440;
+    entries.push({
+      date,
+      sleep: `${String(Math.floor(sm/60)).padStart(2,'0')}:${String(sm%60).padStart(2,'0')}`,
+      wake:  `${String(Math.floor(wm/60)).padStart(2,'0')}:${String(wm%60).padStart(2,'0')}`,
+    });
+  }
+  return entries;
+}
+
+// ── State ─────────────────────────────────────────────
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || mk(); }
+  catch(e) { return mk(); }
+}
+function mk() {
+  return {
+    entries: sampleData(),
+    cfg: { targetSleep:'23:00', targetWake:'07:00', threshGood:15, threshOk:30 },
+    dark: false,
+    calOffset: 0,
+  };
+}
+function save(st) { localStorage.setItem(KEY, JSON.stringify(st)); }
+let ST = load();
+
+// ── Dark mode ─────────────────────────────────────────
+function applyDark() {
+  document.documentElement.setAttribute('data-dark', ST.dark ? 'true' : 'false');
+  document.getElementById('toggle-icon').className = ST.dark ? 'ti ti-sun' : 'ti ti-moon';
+}
+function toggleDark() { ST.dark = !ST.dark; save(ST); applyDark(); }
+
+// ── Navigation ────────────────────────────────────────
+function nav(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('page-' + name).classList.add('on');
+  ['log','dash','history','settings'].forEach((n,i) => {
+    if (n === name) document.querySelectorAll('.tab')[i].classList.add('on');
+  });
+  if (name === 'dash')     renderDash();
+  if (name === 'history')  renderHistory();
+  if (name === 'log')      renderLog();
+  if (name === 'settings') renderSettings();
+}
+
+// ── Log ───────────────────────────────────────────────
+function setOC(id, offsetMins) {
+  const el = document.getElementById(id);
+  const abs = Math.abs(Math.round(offsetMins));
+  let icon, txt, color;
+  if (abs <= 5) {
+    icon = 'ti-check'; txt = 'On time'; color = 'var(--grade-a)';
+  } else if (offsetMins > 0) {
+    icon = 'ti-arrow-up'; txt = `${abs}m late`; color = 'var(--heat-miss)';
+  } else {
+    icon = 'ti-arrow-down'; txt = `${abs}m early`; color = 'var(--blue)';
+  }
+  el.innerHTML = `<i class="ti ${icon}" style="color:${color}"></i><span style="color:${color}">${txt}</span>`;
+}
+
+function updatePreview() {
+  const s = document.getElementById('inp-sleep').value;
+  const w = document.getElementById('inp-wake').value;
+  if (!s || !w) return;
+  setOC('oc-sleep', calcOffset(s, ST.cfg.targetSleep));
+  setOC('oc-wake',  calcOffset(w, ST.cfg.targetWake));
+  const dur = calcDur(s, w);
+  document.getElementById('oc-dur').innerHTML =
+    `<i class="ti ti-moon" style="color:var(--blue)"></i><span style="color:var(--text)">${Math.floor(dur/60)}h ${dur%60}m</span>`;
+}
+
+function renderLog() {
+  updatePreview();
+  const today = new Date().toISOString().split('T')[0];
+  const entry = ST.entries.find(e => e.date === today);
+  const el = document.getElementById('today-logged');
+  if (entry) {
+    const hs  = heatStyle(entry, ST.cfg);
+    const lbl = heatLabel(entry, ST.cfg);
+    const dur = calcDur(entry.sleep, entry.wake);
+    el.innerHTML = `<div class="today-row">
+      <div class="today-pip" style="background:${hs.bg}"></div>
+      <div>
+        <div class="today-text">Today: ${lbl}</div>
+        <div class="today-sub">${fmt12(entry.sleep)} — ${fmt12(entry.wake)} &middot; ${Math.floor(dur/60)}h ${dur%60}m</div>
+      </div>
+    </div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function logEntry() {
+  const s = document.getElementById('inp-sleep').value;
+  const w = document.getElementById('inp-wake').value;
+  if (!s || !w) return;
+  const today = new Date().toISOString().split('T')[0];
+  const idx = ST.entries.findIndex(e => e.date === today);
+  const entry = { date: today, sleep: s, wake: w };
+  if (idx >= 0) ST.entries[idx] = entry;
+  else ST.entries.push(entry);
+  ST.entries.sort((a,b) => a.date.localeCompare(b.date));
+  save(ST);
+  showToast('Logged!');
+  renderLog();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Dashboard ─────────────────────────────────────────
+function renderDash() {
+  const { entries, cfg } = ST;
+  const pct   = score7(entries, cfg);
+  const grade = toGrade(pct);
+  const gc    = document.getElementById('grade-card');
+
+  if (grade) {
+    const gi = GRADES[grade];
+    gc.innerHTML = `<div class="grade-hero">
+      <div class="grade-bubble" style="background:${gi.bg};color:${gi.fg}">${grade}</div>
+      <div>
+        <div class="grade-title" style="color:${gi.fg}">${gi.title}</div>
+        <div class="grade-sub">${gi.sub}</div>
+        <div class="grade-sub" style="margin-top:3px;">7-day average</div>
+      </div>
+    </div>`;
+  } else {
+    gc.innerHTML = `<div class="grade-hero">
+      <div class="grade-bubble" style="background:var(--surface2);color:var(--muted)">—</div>
+      <div><div class="grade-title">No data yet</div><div class="grade-sub">Log a few nights to see your grade</div></div>
+    </div>`;
+  }
+
+  const stk = streakCount(entries, cfg);
+  const dur = avgDur(entries);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-tile">
+      <div class="stat-num yellow">${stk > 0 ? stk : '—'}</div>
+      <div class="stat-lbl">On-target streak</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num">${dur ? Math.floor(dur/60) + 'h ' + (dur%60) + 'm' : '—'}</div>
+      <div class="stat-lbl">Avg duration</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num">${entries.length}</div>
+      <div class="stat-lbl">Days logged</div>
+    </div>
+  `;
+
+  const now = new Date();
+  const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const ws = document.getElementById('week-strip');
+  ws.innerHTML = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const date  = d.toISOString().split('T')[0];
+    const entry = entries.find(e => e.date === date);
+    const hs    = entry ? heatStyle(entry, cfg) : { bg: 'var(--heat-0)', num: 'var(--heat-0-num)' };
+    const tip   = entry ? `${heatLabel(entry, cfg)} · ${fmt12(entry.sleep)}–${fmt12(entry.wake)}` : 'No entry';
+    const col = document.createElement('div');
+    col.className = 'week-col';
+    col.innerHTML = `
+      <div class="week-day-lbl">${DOW[d.getDay()]}</div>
+      <div class="heat-cell" style="background:${hs.bg}">
+        <div class="heat-cell-num" style="color:${hs.num}">${d.getDate()}</div>
+        <div class="tt">${tip}</div>
+      </div>`;
+    ws.appendChild(col);
+  }
+}
+
+// ── History ───────────────────────────────────────────
+function maxCalOffset() {
+  if (!ST.entries.length) return 0;
+  const oldest = ST.entries[0].date;
+  const now = new Date();
+  const oy = parseInt(oldest.slice(0,4)), om = parseInt(oldest.slice(5,7)) - 1;
+  return (now.getFullYear() - oy) * 12 + (now.getMonth() - om);
+}
+
+function calShift(dir) {
+  ST.calOffset = Math.max(0, Math.min(maxCalOffset(), ST.calOffset + dir));
+  save(ST);
+  renderHistory();
+}
+
+function renderHistory() {
+  const { entries, cfg } = ST;
+  const now = new Date();
+  const displayDate = new Date(now.getFullYear(), now.getMonth() - ST.calOffset, 1);
+  const dyr = displayDate.getFullYear();
+  const dmo = displayDate.getMonth();
+
+  document.getElementById('cal-title').textContent =
+    displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  document.getElementById('cal-prev').classList.toggle('disabled', ST.calOffset >= maxCalOffset());
+  document.getElementById('cal-next').classList.toggle('disabled', ST.calOffset <= 0);
+
+  // DOW headers
+  const dowRow = document.getElementById('cal-dow-row');
+  dowRow.innerHTML = '';
+  ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(d => {
+    const c = document.createElement('div');
+    c.className = 'cal-dow';
+    c.textContent = d;
+    dowRow.appendChild(c);
+  });
+
+  // Day cells
+  const body = document.getElementById('cal-body');
+  body.innerHTML = '';
+
+  const firstDow = (new Date(dyr, dmo, 1).getDay() + 6) % 7;
+  for (let i = 0; i < firstDow; i++) body.appendChild(document.createElement('div'));
+
+  const daysInMonth = new Date(dyr, dmo + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${dyr}-${String(dmo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entry   = entries.find(e => e.date === dateStr);
+    const cell    = document.createElement('div');
+
+    if (entry) {
+      const hs  = heatStyle(entry, cfg);
+      const dur = calcDur(entry.sleep, entry.wake);
+      const tip = `${heatLabel(entry, cfg)} · ${fmt12(entry.sleep)}–${fmt12(entry.wake)} · ${Math.floor(dur/60)}h ${dur%60}m`;
+      cell.className = 'cal-day logged';
+      cell.style.background = hs.bg;
+      cell.innerHTML = `<div class="tt">${tip}</div><div class="cal-day-num" style="color:${hs.num}">${d}</div>`;
+    } else {
+      cell.className = 'cal-day';
+      cell.style.background = 'var(--heat-0)';
+      cell.innerHTML = `<div class="cal-day-num" style="color:var(--heat-0-num)">${d}</div>`;
+    }
+
+    body.appendChild(cell);
+  }
+}
+
+// ── Settings ──────────────────────────────────────────
+function renderSettings() {
+  document.getElementById('set-sleep').value = ST.cfg.targetSleep;
+  document.getElementById('set-wake').value  = ST.cfg.targetWake;
+  document.getElementById('set-good').value  = ST.cfg.threshGood;
+  document.getElementById('set-ok').value    = ST.cfg.threshOk;
+}
+
+function saveSettings() {
+  ST.cfg.targetSleep = document.getElementById('set-sleep').value;
+  ST.cfg.targetWake  = document.getElementById('set-wake').value;
+  ST.cfg.threshGood  = parseInt(document.getElementById('set-good').value) || 15;
+  ST.cfg.threshOk    = parseInt(document.getElementById('set-ok').value)   || 30;
+  save(ST);
+  showToast('Saved!');
+}
+
+function clearAll() {
+  if (confirm('Clear all sleep entries?')) {
+    ST.entries = []; ST.calOffset = 0;
+    save(ST);
+    renderLog();
+    showToast('Cleared');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────
+document.getElementById('inp-sleep').addEventListener('change', updatePreview);
+document.getElementById('inp-wake').addEventListener('change', updatePreview);
+
+document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('en-US', {
+  weekday: 'short', month: 'short', day: 'numeric'
+});
+
+applyDark();
+renderLog();
+</script>
+</body>
+</html>
