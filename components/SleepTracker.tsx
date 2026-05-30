@@ -186,8 +186,8 @@ export default function SleepTracker() {
     const now = new Date();
     return Array.from({ length: 7 }, (_, index) => {
       const day = new Date(now);
-      day.setDate(day.getDate() - (6 - index));
-      const date = day.toISOString().split("T")[0];
+      day.setDate(day.getDate() - (7 - index));
+      const date = localDateString(day);
       const entry = entries.find((item) => item.date === date);
       return { day, date, entry };
     });

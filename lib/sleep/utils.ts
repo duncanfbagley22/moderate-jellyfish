@@ -85,7 +85,7 @@ export function toGrade(pct: number | null) {
 export const GRADES = {
   A: {
     title: "Excellent",
-    sub: "Nailing your targets consistently",
+    sub: "Crushing it!",
     bg: "var(--grade-a-bg)",
     fg: "var(--grade-a)",
   },
@@ -97,7 +97,7 @@ export const GRADES = {
   },
   C: {
     title: "Getting there",
-    sub: "Some room to tighten up",
+    sub: "Kinda... Try a little harder this week",
     bg: "var(--grade-c-bg)",
     fg: "var(--grade-c)",
   },
@@ -109,7 +109,7 @@ export const GRADES = {
   },
   F: {
     title: "Rough week",
-    sub: "Worth revisiting your targets",
+    sub: "Not a good week pal",
     bg: "var(--grade-f-bg)",
     fg: "var(--grade-f)",
   },
