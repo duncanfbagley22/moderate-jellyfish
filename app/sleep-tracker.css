@@ -636,7 +636,7 @@
   font-size: 14px;
   color: var(--text);
   outline: none;
-  width: 110px;
+  width: 130px;
   text-align: right;
   transition: border-color 0.15s;
 }
