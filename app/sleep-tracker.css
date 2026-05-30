@@ -99,7 +99,13 @@
   color: var(--blue);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.wordmark-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .wordmark-dot {
@@ -703,8 +709,71 @@
 }
 
 .sleep-tracker-loading {
-  margin: 48px 16px;
-  text-align: center;
-  color: var(--muted);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.loading-scene {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-logo {
+  width: 72px;
+  height: 72px;
+  position: relative;
+  z-index: 1;
+}
+
+.loading-orbit {
+  position: absolute;
+  inset: 0;
+}
+
+.loading-dot-arm {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--i) * 45deg));
+}
+
+.loading-dot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: var(--yellow);
+  animation: loading-dot-bounce 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.14s);
+}
+
+@keyframes loading-dot-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.75);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: translateY(-8px) scale(1.15);
+    opacity: 1;
+  }
+}
+
+.loading-label {
+  margin: 0;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   clearSleepLogs,
   loadSleepData,
@@ -279,7 +279,28 @@ export default function SleepTracker() {
   if (loading) {
     return (
       <div className="sleep-tracker-page">
-        <div className="sleep-tracker-loading">Loading sleep data...</div>
+        <div className="sleep-tracker-loading" aria-live="polite" aria-busy="true">
+          <div className="loading-scene">
+            <div className="loading-orbit" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div
+                  key={i}
+                  className="loading-dot-arm"
+                  style={{ "--i": i } as CSSProperties}
+                >
+                  <span className="loading-dot" />
+                </div>
+              ))}
+            </div>
+            <img
+              src="/moderate_jellyfish.png"
+              alt=""
+              className="loading-logo"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="loading-label">loading...</p>
+        </div>
       </div>
     );
   }

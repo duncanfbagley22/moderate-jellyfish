@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "sleepy",
   description: "Track bedtime and wake time against your targets",
+  icons: {
+    icon: { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    apple: { url: "/moderate_jellyfish.png", type: "image/png" },
+  },
 };
 
 export default function RootLayout({
