@@ -133,8 +133,26 @@ export function avgDur(entries: SleepEntry[]) {
   );
 }
 
+export function localDateString(d: Date = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function todayDate() {
-  return new Date().toISOString().split("T")[0];
+  return localDateString();
+}
+
+/** Default log date: yesterday before noon, today from noon onward (bed-night anchor). */
+export function defaultLogDate() {
+  const now = new Date();
+  if (now.getHours() < 12) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return localDateString(yesterday);
+  }
+  return localDateString(now);
 }
 
 export function maxCalOffset(entries: SleepEntry[]) {

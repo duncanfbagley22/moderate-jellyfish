@@ -21,6 +21,8 @@ import {
   offsetCard,
   score7,
   streakCount,
+  defaultLogDate,
+  localDateString,
   todayDate,
   toGrade,
 } from "@/lib/sleep/utils";
@@ -94,6 +96,7 @@ export default function SleepTracker() {
   const [dark, setDark] = useState(false);
   const [calOffset, setCalOffset] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("log");
+  const [logDate, setLogDate] = useState(() => defaultLogDate());
   const [inpSleep, setInpSleep] = useState("23:00");
   const [inpWake, setInpWake] = useState("07:00");
   const [setSleep, setSetSleep] = useState("23:00");
@@ -148,8 +151,25 @@ export default function SleepTracker() {
     saveUiState({ dark, calOffset });
   }, [dark, calOffset]);
 
-  const today = todayDate();
-  const todayEntry = entries.find((entry) => entry.date === today);
+  useEffect(() => {
+    if (activeTab === "log") {
+      setLogDate(defaultLogDate());
+    }
+  }, [activeTab]);
+
+  const logDateEntry = entries.find((entry) => entry.date === logDate);
+  const logDateLabel = useMemo(() => {
+    const today = todayDate();
+    if (logDate === today) return "Today";
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (logDate === localDateString(yesterday)) return "Yesterday";
+    return new Date(`${logDate}T12:00:00`).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  }, [logDate]);
 
   const sleepPreview = inpSleep && inpWake ? offsetCard(calcOffset(inpSleep, cfg.targetSleep)) : null;
   const wakePreview = inpSleep && inpWake ? offsetCard(calcOffset(inpWake, cfg.targetWake)) : null;
@@ -216,7 +236,7 @@ export default function SleepTracker() {
     setBusy(true);
     setError(null);
     try {
-      const entry = await upsertSleepLog(today, inpSleep, inpWake);
+      const entry = await upsertSleepLog(logDate, inpSleep, inpWake);
       setEntries((current) => {
         const next = current.filter((item) => item.date !== entry.date);
         next.push(entry);
@@ -348,7 +368,16 @@ export default function SleepTracker() {
 
         <div className={`page ${activeTab === "log" ? "on" : ""}`}>
           <div className="card">
-            <div className="card-label">Tonight&apos;s log</div>
+            <div className="card-header">
+              <div className="card-label">Tonight&apos;s log</div>
+              <input
+                type="date"
+                className="log-date-inp"
+                value={logDate}
+                onChange={(event) => setLogDate(event.target.value)}
+                aria-label="Night (bed date)"
+              />
+            </div>
             <div className="field-block">
               <div className="field-head">Bedtime</div>
               <input
@@ -416,20 +445,20 @@ export default function SleepTracker() {
             >
               Log sleep
             </button>
-            {todayEntry ? (
+            {logDateEntry ? (
               <div className="today-row">
                 <div
                   className="today-pip"
-                  style={{ background: heatStyle(todayEntry, cfg).bg }}
+                  style={{ background: heatStyle(logDateEntry, cfg).bg }}
                 />
                 <div>
                   <div className="today-text">
-                    Today: {heatLabel(todayEntry, cfg)}
+                    {logDateLabel}: {heatLabel(logDateEntry, cfg)}
                   </div>
                   <div className="today-sub">
-                    {fmt12(todayEntry.sleep)} — {fmt12(todayEntry.wake)} ·{" "}
-                    {Math.floor(calcDur(todayEntry.sleep, todayEntry.wake) / 60)}h{" "}
-                    {calcDur(todayEntry.sleep, todayEntry.wake) % 60}m
+                    {fmt12(logDateEntry.sleep)} — {fmt12(logDateEntry.wake)} ·{" "}
+                    {Math.floor(calcDur(logDateEntry.sleep, logDateEntry.wake) / 60)}h{" "}
+                    {calcDur(logDateEntry.sleep, logDateEntry.wake) % 60}m
                   </div>
                 </div>
               </div>
