@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import ReactMarkdown from 'react-markdown'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,6 +61,21 @@ function getTodayHeader(): string {
 }
 
 // ── Article Card ─────────────────────────────────────────────
+
+function stripJinaHeader(text: string): string {
+    // Find where the actual markdown content starts
+    const marker = 'Markdown Content:'
+    const idx = text.indexOf(marker)
+    if (idx !== -1) {
+      return text.slice(idx + marker.length).trim()
+    }
+    // Fallback: strip any lines starting with known Jina metadata prefixes
+    return text
+      .split('\n')
+      .filter(line => !line.startsWith('Title:') && !line.startsWith('URL Source:') && !line.startsWith('Published Time:'))
+      .join('\n')
+      .trim()
+  }
 
 function ArticleCard({ article }: { article: Article }) {
   const [view, setView] = useState<ViewMode>('short')
@@ -143,9 +159,13 @@ function ArticleCard({ article }: { article: Article }) {
         marginBottom: '0.75rem',
         maxHeight: view === 'full' ? '400px' : 'none',
         overflowY: view === 'full' ? 'auto' : 'visible',
-        whiteSpace: view === 'full' ? 'pre-wrap' : 'normal',
       }}>
-        {content ?? <em style={{ color: '#888' }}>No summary available.</em>}
+        {content
+          ? view === 'full'
+            ? <ReactMarkdown>{stripJinaHeader(content)}</ReactMarkdown>
+            : <p>{content}</p>
+          : <em style={{ color: '#888' }}>No summary available.</em>
+        }
       </div>
 
       {/* Controls */}
