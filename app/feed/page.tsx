@@ -533,7 +533,7 @@ export default function ArticleFeedPage() {
               fontSize: '0.72rem',
               color: '#555',
             }}>
-              {articles.length} dispatches
+              {articles.length} articles
             </span>
           </div>
         </header>
@@ -568,7 +568,7 @@ export default function ArticleFeedPage() {
             color: '#555',
             margin: '0.4rem 0',
           }}>
-            Latest Dispatches
+            Latest Articles
           </p>
           <hr className="section-rule" />
 
@@ -591,7 +591,7 @@ export default function ArticleFeedPage() {
                 textAlign: 'center',
                 padding: '3rem 0',
               }}>
-                No dispatches yet. The presses are idle.
+                No articles yet. The presses are idle.
               </p>
             ) : (
               <div className="feed-columns">
