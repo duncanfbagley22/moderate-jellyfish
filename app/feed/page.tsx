@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
-
+import { Check, X, Pencil, Trash2 } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,26 +25,30 @@ interface Article {
   published_at: string | null
   raw_text: string | null
   created_at: string
-  sources: { name: string } | null
+  saved: boolean
+  archived: boolean
+  sources: { id: string; name: string; engagement_score: number } | null
   summaries: Summary | null
 }
 
-interface Source {
-  id?: string
+interface SourceRow {
+  id: string
   url: string
   name: string
   type: 'rss' | 'scrape'
-  added_by: string
   status: string
   auth_type: string
-  auth_config: string
+  auth_config: Record<string, string> | null
   max_articles: number
-  url_exclude: string
-  url_pattern: string
-  rss_url: string
+  url_exclude: string | null
+  url_pattern: string | null
+  rss_url: string | null
+  engagement_score: number
+  rating_count: number
 }
 
 type ViewMode = 'short' | 'medium' | 'full'
+type Tab = 'feed' | 'clipped' | 'sources'
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -61,25 +65,58 @@ function getTodayHeader(): string {
   }).toUpperCase()
 }
 
+function stripJinaHeader(text: string): string {
+  const marker = 'Markdown Content:'
+  const idx = text.indexOf(marker)
+  if (idx !== -1) return text.slice(idx + marker.length).trim()
+  return text
+    .split('\n')
+    .filter(line => !line.startsWith('Title:') && !line.startsWith('URL Source:') && !line.startsWith('Published Time:'))
+    .join('\n')
+    .trim()
+}
+
+// ── Dog-ear SVG ──────────────────────────────────────────────
+
+function DogEar({ saved, onClick }: { saved: boolean; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      title={saved ? 'Remove clip' : 'Clip article'}
+      style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '28px',
+        height: '28px',
+        cursor: 'pointer',
+        opacity: saved ? 1 : 0.25,
+        transition: 'opacity 0.2s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={e => (e.currentTarget.style.opacity = saved ? '1' : '0.25')}
+    >
+      <svg width="28" height="28" viewBox="0 0 28 28">
+        <polygon points="0,0 28,0 28,28" fill={saved ? '#1a1a1a' : '#888'} />
+      </svg>
+    </div>
+  )
+}
+
 // ── Article Card ─────────────────────────────────────────────
 
-function stripJinaHeader(text: string): string {
-    // Find where the actual markdown content starts
-    const marker = 'Markdown Content:'
-    const idx = text.indexOf(marker)
-    if (idx !== -1) {
-      return text.slice(idx + marker.length).trim()
-    }
-    // Fallback: strip any lines starting with known Jina metadata prefixes
-    return text
-      .split('\n')
-      .filter(line => !line.startsWith('Title:') && !line.startsWith('URL Source:') && !line.startsWith('Published Time:'))
-      .join('\n')
-      .trim()
-  }
-
-function ArticleCard({ article }: { article: Article }) {
+function ArticleCard({
+  article,
+  onArchive,
+  onSaveToggle,
+}: {
+  article: Article
+  onArchive: (id: string) => void
+  onSaveToggle: (id: string, saved: boolean) => void
+}) {
   const [view, setView] = useState<ViewMode>('short')
+  const [fading, setFading] = useState(false)
+  const [rating, setRating] = useState<1 | -1 | null>(null)
 
   const content = view === 'short'
     ? article.summaries?.short
@@ -87,50 +124,89 @@ function ArticleCard({ article }: { article: Article }) {
     ? article.summaries?.medium
     : article.raw_text
 
+  async function updateEngagementScore(sourceId: string, newRating: 1 | -1, prevRating: 1 | -1 | null) {
+    const { data: source } = await supabase
+      .from('sources')
+      .select('engagement_score, rating_count')
+      .eq('id', sourceId)
+      .single()
+
+    if (!source) return
+
+    const { engagement_score, rating_count } = source
+    const normalizedNew = newRating === 1 ? 1 : 0
+    const normalizedPrev = prevRating === null ? null : prevRating === 1 ? 1 : 0
+
+    if (normalizedPrev === null) {
+      const newScore = (engagement_score * rating_count + normalizedNew) / (rating_count + 1)
+      await supabase.from('sources').update({
+        engagement_score: newScore,
+        rating_count: rating_count + 1,
+      }).eq('id', sourceId)
+    } else {
+      const newScore = (engagement_score * rating_count - normalizedPrev + normalizedNew) / rating_count
+      await supabase.from('sources').update({ engagement_score: newScore }).eq('id', sourceId)
+    }
+  }
+
+  async function handleRating(value: 1 | -1) {
+    const sourceId = article.sources?.id
+    const prevRating = rating
+    setRating(value)
+
+    await supabase.from('interactions').insert({
+      article_id: article.id,
+      action: 'rated',
+      rating: value,
+    })
+
+    if (sourceId) await updateEngagementScore(sourceId, value, prevRating)
+
+    if (value === -1) {
+      setFading(true)
+      await supabase.from('articles').update({
+        archived: true,
+        archived_at: new Date().toISOString(),
+      }).eq('id', article.id)
+      setTimeout(() => onArchive(article.id), 500)
+    }
+  }
+
+  async function handleSaveToggle() {
+    const newSaved = !article.saved
+    await supabase.from('articles').update({
+      saved: newSaved,
+      saved_at: newSaved ? new Date().toISOString() : null,
+    }).eq('id', article.id)
+    onSaveToggle(article.id, newSaved)
+  }
+
   return (
     <article style={{
+      position: 'relative',
       borderBottom: '1px solid #1a1a1a',
       paddingBottom: '1.5rem',
       marginBottom: '1.5rem',
+      paddingRight: '2rem',
+      opacity: fading ? 0 : 1,
+      transition: 'opacity 0.5s ease',
     }}>
+      <DogEar saved={article.saved} onClick={handleSaveToggle} />
+
       {/* Source & Meta */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
-        marginBottom: '0.3rem',
-      }}>
-        <span style={{
-          fontFamily: "'UnifrakturMaguntia', cursive",
-          fontSize: '0.85rem',
-          color: '#555',
-          letterSpacing: '0.03em',
-        }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.3rem' }}>
+        <span style={{ fontFamily: "'UnifrakturMaguntia', cursive", fontSize: '0.85rem', color: '#555', letterSpacing: '0.03em' }}>
           {article.sources?.name ?? 'Unknown'}
         </span>
-        <span style={{
-          fontFamily: "'IM Fell English', serif",
-          fontSize: '0.72rem',
-          color: '#777',
-          fontStyle: 'italic',
-        }}>
+        <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', color: '#777', fontStyle: 'italic' }}>
           {formatDate(article.published_at ?? article.created_at)}
         </span>
       </div>
 
       {/* Title */}
-      <a href={article.url} target="_blank" rel="noopener noreferrer"
-        style={{ textDecoration: 'none', color: 'inherit' }}>
-        <h2 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: '1.25rem',
-          fontWeight: '700',
-          lineHeight: '1.3',
-          marginBottom: '0.25rem',
-          color: '#0a0a0a',
-          letterSpacing: '-0.01em',
-          cursor: 'pointer',
-        }}
+      <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <h2
+          style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.25rem', fontWeight: '700', lineHeight: '1.3', marginBottom: '0.25rem', color: '#0a0a0a', letterSpacing: '-0.01em', cursor: 'pointer' }}
           onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
           onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
         >
@@ -140,13 +216,7 @@ function ArticleCard({ article }: { article: Article }) {
 
       {/* Author */}
       {article.author && (
-        <p style={{
-          fontFamily: "'IM Fell English', serif",
-          fontSize: '0.78rem',
-          color: '#555',
-          fontStyle: 'italic',
-          marginBottom: '0.6rem',
-        }}>
+        <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.78rem', color: '#555', fontStyle: 'italic', marginBottom: '0.6rem' }}>
           By {article.author}
         </p>
       )}
@@ -170,7 +240,7 @@ function ArticleCard({ article }: { article: Article }) {
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         {(['short', 'medium', 'full'] as ViewMode[]).map(mode => (
           <button
             key={mode}
@@ -191,19 +261,43 @@ function ArticleCard({ article }: { article: Article }) {
             {mode === 'short' ? 'Brief' : mode === 'medium' ? 'Summary' : 'Full Text'}
           </button>
         ))}
+
+        <div style={{ display: 'flex', gap: '0.3rem', marginLeft: '0.5rem' }}>
+          <button
+            onClick={() => handleRating(1)}
+            title="Recommend"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '26px', height: '26px',
+              border: '1px solid #1a1a1a',
+              background: rating === 1 ? '#2d6a2d' : 'transparent',
+              color: rating === 1 ? '#fff' : '#1a1a1a',
+              cursor: 'pointer', borderRadius: '2px', transition: 'all 0.15s',
+            }}
+          >
+            <Check size={13} strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={() => handleRating(-1)}
+            title="Pass"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '26px', height: '26px',
+              border: '1px solid #1a1a1a',
+              background: rating === -1 ? '#8b0000' : 'transparent',
+              color: rating === -1 ? '#fff' : '#1a1a1a',
+              cursor: 'pointer', borderRadius: '2px', transition: 'all 0.15s',
+            }}
+          >
+            <X size={13} strokeWidth={2.5} />
+          </button>
+        </div>
+
         <a
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          style={{
-            marginLeft: 'auto',
-            fontFamily: "'IM Fell English', serif",
-            fontSize: '0.72rem',
-            fontStyle: 'italic',
-            color: '#555',
-            textDecoration: 'underline',
-            letterSpacing: '0.03em',
-          }}
+          style={{ marginLeft: 'auto', fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555', textDecoration: 'underline', letterSpacing: '0.03em' }}
         >
           Read Original →
         </a>
@@ -212,199 +306,215 @@ function ArticleCard({ article }: { article: Article }) {
   )
 }
 
-// ── Add Source Form ──────────────────────────────────────────
+// ── Sources Tab ──────────────────────────────────────────────
 
-function AddSourceForm({ onAdded }: { onAdded: () => void }) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState<Source>({
-    url: '',
-    name: '',
-    type: 'scrape',
-    added_by: 'manual',
-    status: 'active',
-    auth_type: 'none',
-    auth_config: '',
-    max_articles: 10,
-    url_exclude: '',
-    url_pattern: '',
-    rss_url: '',
+function SourcesTab() {
+  const [sources, setSources] = useState<SourceRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Partial<SourceRow>>({})
+  const [adding, setAdding] = useState(false)
+  const [newForm, setNewForm] = useState({
+    url: '', name: '', type: 'scrape' as 'rss' | 'scrape',
+    status: 'active', auth_type: 'none', max_articles: 10,
+    url_exclude: '', url_pattern: '', rss_url: '',
   })
+  const [error, setError] = useState<string | null>(null)
 
-  function set(field: keyof Source, value: string | number) {
-    setForm(f => ({ ...f, [field]: value }))
+  async function fetchSources() {
+    setLoading(true)
+    const { data } = await supabase.from('sources').select('*').order('name')
+    setSources(data ?? [])
+    setLoading(false)
   }
 
-  async function handleSubmit() {
-    if (!form.url || !form.name) {
-      setError('URL and Name are required.')
-      return
-    }
-    setLoading(true)
+  useEffect(() => { fetchSources() }, [])
+
+  async function handleDelete(id: string) {
+    if (!confirm('Remove this source? Articles will be preserved.')) return
+    await supabase.from('sources').delete().eq('id', id)
+    fetchSources()
+  }
+
+  async function handleSaveEdit(id: string) {
+    await supabase.from('sources').update(editForm).eq('id', id)
+    setEditingId(null)
+    fetchSources()
+  }
+
+  async function handleAdd() {
+    if (!newForm.url || !newForm.name) { setError('URL and Name are required.'); return }
     setError(null)
-
-    const payload: Record<string, unknown> = {
-      url: form.url,
-      name: form.name,
-      type: form.type,
-      added_by: form.added_by,
-      status: form.status,
-      auth_type: form.auth_type,
-      max_articles: form.max_articles,
-      ...(form.url_exclude && { url_exclude: form.url_exclude }),
-      ...(form.url_pattern && { url_pattern: form.url_pattern }),
-      ...(form.rss_url && { rss_url: form.rss_url }),
-      ...(form.auth_config && { auth_config: { cookie: form.auth_config } }),
-    }
-
-    const { error } = await supabase.from('sources').insert(payload)
-    setLoading(false)
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setOpen(false)
-      setForm({
-        url: '', name: '', type: 'scrape', added_by: 'manual',
-        status: 'active', auth_type: 'none', auth_config: '',
-        max_articles: 10, url_exclude: '', url_pattern: '', rss_url: '',
-      })
-      onAdded()
-    }
+    await supabase.from('sources').insert({
+      url: newForm.url, name: newForm.name, type: newForm.type,
+      status: newForm.status, auth_type: newForm.auth_type,
+      max_articles: newForm.max_articles, added_by: 'manual',
+      ...(newForm.url_exclude && { url_exclude: newForm.url_exclude }),
+      ...(newForm.url_pattern && { url_pattern: newForm.url_pattern }),
+      ...(newForm.rss_url && { rss_url: newForm.rss_url }),
+    })
+    setAdding(false)
+    setNewForm({ url: '', name: '', type: 'scrape', status: 'active', auth_type: 'none', max_articles: 10, url_exclude: '', url_pattern: '', rss_url: '' })
+    fetchSources()
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%',
-    fontFamily: "'IM Fell English', serif",
-    fontSize: '0.88rem',
-    padding: '0.4rem 0.5rem',
-    border: '1px solid #1a1a1a',
-    background: '#faf8f2',
-    color: '#1a1a1a',
-    outline: 'none',
-    boxSizing: 'border-box',
+    fontFamily: "'IM Fell English', serif", fontSize: '0.82rem',
+    padding: '0.25rem 0.4rem', border: '1px solid #aaa',
+    background: '#faf8f2', color: '#1a1a1a', width: '100%',
   }
 
-  const labelStyle: React.CSSProperties = {
-    fontFamily: "'IM Fell English', serif",
-    fontSize: '0.75rem',
-    fontStyle: 'italic',
-    color: '#555',
-    display: 'block',
-    marginBottom: '0.2rem',
+  const cellStyle: React.CSSProperties = {
+    fontFamily: "'IM Fell English', serif", fontSize: '0.82rem',
+    padding: '0.5rem 0.75rem', borderBottom: '1px solid #ddd',
+    color: '#1a1a1a', verticalAlign: 'middle',
   }
 
-  const fieldStyle: React.CSSProperties = {
-    marginBottom: '0.85rem',
+  const headStyle: React.CSSProperties = {
+    ...cellStyle,
+    fontFamily: "'Playfair Display', serif", fontSize: '0.7rem',
+    letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+    color: '#555', borderBottom: '2px solid #1a1a1a', background: '#f5f0e8',
   }
 
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: '0.82rem',
-          letterSpacing: '0.08em',
-          padding: '0.4rem 1.2rem',
-          border: '2px solid #1a1a1a',
-          background: open ? '#1a1a1a' : 'transparent',
-          color: open ? '#f5f0e8' : '#1a1a1a',
-          cursor: 'pointer',
-          textTransform: 'uppercase',
-        }}
-      >
-        {open ? '✕ Close' : '+ Add Source'}
-      </button>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', fontSize: '0.88rem', color: '#555' }}>
+          {sources.length} registered sources
+        </p>
+        <button
+          onClick={() => setAdding(a => !a)}
+          style={{
+            fontFamily: "'Playfair Display', serif", fontSize: '0.75rem',
+            letterSpacing: '0.08em', padding: '0.35rem 1rem',
+            border: '2px solid #1a1a1a',
+            background: adding ? '#1a1a1a' : 'transparent',
+            color: adding ? '#f5f0e8' : '#1a1a1a',
+            cursor: 'pointer', textTransform: 'uppercase',
+          }}
+        >
+          {adding ? 'Cancel' : '+ Add Source'}
+        </button>
+      </div>
 
-      {open && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '1.5rem',
-          border: '1px solid #1a1a1a',
-          background: '#faf8f2',
-        }}>
-          <h3 style={{
-            fontFamily: "'UnifrakturMaguntia', cursive",
-            fontSize: '1.2rem',
-            marginBottom: '1.2rem',
-            color: '#1a1a1a',
-          }}>
-            Register New Source
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>URL * (homepage or RSS feed)</label>
-              <input style={inputStyle} value={form.url} onChange={e => set('url', e.target.value)} placeholder="https://..." />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Name *</label>
-              <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="The Ringer" />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Type *</label>
-              <select style={inputStyle} value={form.type} onChange={e => set('type', e.target.value)}>
+      {adding && (
+        <div style={{ padding: '1rem', border: '1px solid #1a1a1a', background: '#faf8f2', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            {[
+              { label: 'URL *', key: 'url', placeholder: 'https://...' },
+              { label: 'Name *', key: 'name', placeholder: 'The Ringer' },
+              { label: 'URL Exclude', key: 'url_exclude', placeholder: '/podcasts' },
+              { label: 'URL Pattern', key: 'url_pattern', placeholder: '/articles/' },
+              { label: 'RSS URL', key: 'rss_url', placeholder: 'https://...' },
+            ].map(({ label, key, placeholder }) => (
+              <div key={key}>
+                <label style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555', display: 'block', marginBottom: '0.2rem' }}>{label}</label>
+                <input style={inputStyle} placeholder={placeholder}
+                  value={(newForm as Record<string, unknown>)[key] as string ?? ''}
+                  onChange={e => setNewForm(f => ({ ...f, [key]: e.target.value }))} />
+              </div>
+            ))}
+            <div>
+              <label style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555', display: 'block', marginBottom: '0.2rem' }}>Type</label>
+              <select style={inputStyle} value={newForm.type} onChange={e => setNewForm(f => ({ ...f, type: e.target.value as 'rss' | 'scrape' }))}>
                 <option value="scrape">Scrape</option>
                 <option value="rss">RSS</option>
               </select>
             </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Max Articles</label>
-              <input style={inputStyle} type="number" value={form.max_articles} onChange={e => set('max_articles', parseInt(e.target.value))} />
+            <div>
+              <label style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555', display: 'block', marginBottom: '0.2rem' }}>Max Articles</label>
+              <input style={inputStyle} type="number" value={newForm.max_articles}
+                onChange={e => setNewForm(f => ({ ...f, max_articles: parseInt(e.target.value) }))} />
             </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>URL Exclude (optional)</label>
-              <input style={inputStyle} value={form.url_exclude} onChange={e => set('url_exclude', e.target.value)} placeholder="/podcasts" />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>URL Pattern (optional)</label>
-              <input style={inputStyle} value={form.url_pattern} onChange={e => set('url_pattern', e.target.value)} placeholder="/articles/" />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>RSS URL (optional, scrape sources)</label>
-              <input style={inputStyle} value={form.rss_url} onChange={e => set('rss_url', e.target.value)} placeholder="https://..." />
-            </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Auth Type</label>
-              <select style={inputStyle} value={form.auth_type} onChange={e => set('auth_type', e.target.value)}>
-                <option value="none">None</option>
-                <option value="cookie">Cookie</option>
-              </select>
-            </div>
-            {form.auth_type === 'cookie' && (
-              <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Cookie Value</label>
-                <input style={inputStyle} value={form.auth_config} onChange={e => set('auth_config', e.target.value)} placeholder="session=abc123..." />
-              </div>
-            )}
           </div>
-
-          {error && (
-            <p style={{ fontFamily: "'IM Fell English', serif", color: '#8b0000', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
-              {error}
-            </p>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '0.82rem',
-              letterSpacing: '0.08em',
-              padding: '0.5rem 1.5rem',
-              border: '2px solid #1a1a1a',
-              background: '#1a1a1a',
-              color: '#f5f0e8',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              textTransform: 'uppercase',
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            {loading ? 'Filing...' : 'Submit for Publication'}
+          {error && <p style={{ fontFamily: "'IM Fell English', serif", color: '#8b0000', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{error}</p>}
+          <button onClick={handleAdd} style={{
+            fontFamily: "'Playfair Display', serif", fontSize: '0.75rem',
+            letterSpacing: '0.08em', padding: '0.35rem 1rem',
+            border: '2px solid #1a1a1a', background: '#1a1a1a',
+            color: '#f5f0e8', cursor: 'pointer', textTransform: 'uppercase',
+          }}>
+            Submit
           </button>
+        </div>
+      )}
+
+      {loading ? (
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', padding: '2rem 0' }}>Loading sources...</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {['Name', 'URL', 'Type', 'Status', 'Max', 'Score', 'Actions'].map(h => (
+                  <th key={h} style={headStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sources.map(source => (
+                <tr key={source.id}>
+                  {editingId === source.id ? (
+                    <>
+                      <td style={cellStyle}><input style={inputStyle} value={editForm.name ?? ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></td>
+                      <td style={cellStyle}><input style={inputStyle} value={editForm.url ?? ''} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))} /></td>
+                      <td style={cellStyle}>
+                        <select style={inputStyle} value={editForm.type ?? 'scrape'} onChange={e => setEditForm(f => ({ ...f, type: e.target.value as 'rss' | 'scrape' }))}>
+                          <option value="scrape">Scrape</option>
+                          <option value="rss">RSS</option>
+                        </select>
+                      </td>
+                      <td style={cellStyle}>
+                        <select style={inputStyle} value={editForm.status ?? 'active'} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                          <option value="active">Active</option>
+                          <option value="paused">Paused</option>
+                        </select>
+                      </td>
+                      <td style={cellStyle}><input style={{ ...inputStyle, width: '50px' }} type="number" value={editForm.max_articles ?? 10} onChange={e => setEditForm(f => ({ ...f, max_articles: parseInt(e.target.value) }))} /></td>
+                      <td style={cellStyle}>{source.engagement_score?.toFixed(2)}</td>
+                      <td style={cellStyle}>
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button onClick={() => handleSaveEdit(source.id)} style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.75rem', padding: '0.2rem 0.5rem', border: '1px solid #2d6a2d', background: '#2d6a2d', color: '#fff', cursor: 'pointer' }}>Save</button>
+                          <button onClick={() => setEditingId(null)} style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.75rem', padding: '0.2rem 0.5rem', border: '1px solid #aaa', background: 'transparent', cursor: 'pointer' }}>Cancel</button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td style={cellStyle}>{source.name}</td>
+                      <td style={{ ...cellStyle, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <a href={source.url} target="_blank" rel="noopener noreferrer" style={{ color: '#555', textDecoration: 'underline' }}>{source.url}</a>
+                      </td>
+                      <td style={cellStyle}>{source.type}</td>
+                      <td style={cellStyle}>
+                        <span style={{
+                          padding: '0.1rem 0.4rem', border: '1px solid',
+                          borderColor: source.status === 'active' ? '#2d6a2d' : '#888',
+                          color: source.status === 'active' ? '#2d6a2d' : '#888',
+                          fontSize: '0.7rem', fontFamily: "'IM Fell English', serif", fontStyle: 'italic',
+                        }}>
+                          {source.status}
+                        </span>
+                      </td>
+                      <td style={cellStyle}>{source.max_articles}</td>
+                      <td style={cellStyle}>{source.engagement_score?.toFixed(2)}</td>
+                      <td style={cellStyle}>
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button onClick={() => { setEditingId(source.id); setEditForm(source) }} style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#555', padding: '0.2rem' }}>
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => handleDelete(source.id)} style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8b0000', padding: '0.2rem' }}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -416,28 +526,63 @@ function AddSourceForm({ onAdded }: { onAdded: () => void }) {
 export default function ArticleFeedPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<Tab>('feed')
 
   async function fetchArticles() {
     setLoading(true)
     const { data, error } = await supabase
       .from('articles')
       .select(`
-        id, url, title, author, published_at, raw_text, created_at,
-        sources(name),
+        id, url, title, author, published_at, raw_text, created_at, saved, archived,
+        sources(id, name, engagement_score),
         summaries(short, medium)
       `)
+      .eq('archived', false)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(100)
 
-    if (!error && data) setArticles(data as unknown as Article[])
+    if (!error && data) {
+      const sorted = (data as unknown as Article[]).sort((a, b) => {
+        const scoreA = a.sources?.engagement_score ?? 0.5
+        const scoreB = b.sources?.engagement_score ?? 0.5
+        return scoreB - scoreA
+      })
+      setArticles(sorted)
+    }
     setLoading(false)
   }
 
   useEffect(() => { fetchArticles() }, [])
 
+  function handleArchive(id: string) {
+    setArticles(prev => prev.filter(a => a.id !== id))
+  }
+
+  function handleSaveToggle(id: string, saved: boolean) {
+    setArticles(prev => prev.map(a => a.id === id ? { ...a, saved } : a))
+  }
+
+  const feedArticles = articles.filter(a => !a.archived)
+  const clippedArticles = articles.filter(a => a.saved)
+
+  const tabStyle = (t: Tab): React.CSSProperties => ({
+    fontFamily: "'Playfair Display', serif",
+    fontSize: '0.72rem',
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    padding: '0.4rem 1.2rem',
+    border: '1px solid #1a1a1a',
+    borderBottom: tab === t ? 'none' : '1px solid #1a1a1a',
+    background: tab === t ? '#f5f0e8' : '#e8e3d8',
+    color: '#1a1a1a',
+    cursor: 'pointer',
+    marginBottom: tab === t ? '-1px' : '0',
+    position: 'relative',
+    zIndex: tab === t ? 1 : 0,
+  })
+
   return (
     <>
-      {/* Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IM+Fell+English:ital@0;1&family=UnifrakturMaguntia&display=swap');
 
@@ -445,25 +590,15 @@ export default function ArticleFeedPage() {
 
         body {
           background: #f5f0e8;
-          background-image:
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
         }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f5f0e8; }
         ::-webkit-scrollbar-thumb { background: #1a1a1a; }
 
-        .masthead-rule {
-          border: none;
-          border-top: 4px double #1a1a1a;
-          margin: 0.5rem 0;
-        }
-
-        .section-rule {
-          border: none;
-          border-top: 1px solid #1a1a1a;
-          margin: 0.4rem 0;
-        }
+        .masthead-rule { border: none; border-top: 4px double #1a1a1a; margin: 0.5rem 0; }
+        .section-rule { border: none; border-top: 1px solid #1a1a1a; margin: 0.4rem 0; }
 
         .feed-columns {
           column-count: 2;
@@ -471,174 +606,85 @@ export default function ArticleFeedPage() {
           column-rule: 1px solid #1a1a1a;
         }
 
-        @media (max-width: 700px) {
-          .feed-columns { column-count: 1; }
-        }
+        @media (max-width: 700px) { .feed-columns { column-count: 1; } }
+        .feed-columns article { break-inside: avoid; }
 
-        .feed-columns article {
-          break-inside: avoid;
-        }
-
-        .article-content p {
-        margin-bottom: 0.9rem;
-        text-indent: 1.5em;
-        }
-
-        .article-content p:first-child {
-        text-indent: 1.5em;
-        }
-
+        .article-content p { margin-bottom: 0.9rem; text-indent: 1.5em; }
+        .article-content p:first-child { text-indent: 1.5em; }
         .article-content h1, .article-content h2, .article-content h3 {
-        font-family: 'Playfair Display', serif;
-        margin: 1rem 0 0.4rem;
+          font-family: 'Playfair Display', serif;
+          margin: 1rem 0 0.4rem;
         }
-
-        .article-content ul, .article-content ol {
-        margin: 0.5rem 0 0.9rem 1.5rem;
-        }
-
-        .article-content li {
-        margin-bottom: 0.3rem;
-        }
+        .article-content ul, .article-content ol { margin: 0.5rem 0 0.9rem 1.5rem; }
+        .article-content li { margin-bottom: 0.3rem; }
       `}</style>
 
-      <div style={{
-        maxWidth: '960px',
-        margin: '0 auto',
-        padding: '2rem 1.5rem',
-        minHeight: '100vh',
-      }}>
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '2rem 1.5rem', minHeight: '100vh' }}>
 
         {/* Masthead */}
         <header style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <p style={{
-            fontFamily: "'IM Fell English', serif",
-            fontSize: '0.72rem',
-            letterSpacing: '0.12em',
-            color: '#555',
-            textTransform: 'uppercase',
-            marginBottom: '0.5rem',
-          }}>
+          <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', letterSpacing: '0.12em', color: '#555', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             {getTodayHeader()}
           </p>
-
           <hr className="masthead-rule" />
-
-          <h1 style={{
-            fontFamily: "'UnifrakturMaguntia', cursive",
-            fontSize: 'clamp(2.8rem, 8vw, 5rem)',
-            color: '#0a0a0a',
-            lineHeight: '1',
-            letterSpacing: '-0.01em',
-            margin: '0.4rem 0',
-          }}>
+          <h1 style={{ fontFamily: "'UnifrakturMaguntia', cursive", fontSize: 'clamp(2.8rem, 8vw, 5rem)', color: '#0a0a0a', lineHeight: '1', letterSpacing: '-0.01em', margin: '0.4rem 0' }}>
             The Daily Digest
           </h1>
-
           <hr className="masthead-rule" />
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '0.4rem',
-          }}>
-            <span style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: '0.72rem',
-              fontStyle: 'italic',
-              color: '#555',
-            }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem' }}>
+            <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555' }}>
               "All the news that's fit to read"
             </span>
-            <span style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: '0.72rem',
-              color: '#555',
-            }}>
-              {articles.length} articles
+            <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', color: '#555' }}>
+              {feedArticles.length} dispatches
             </span>
           </div>
         </header>
 
-        {/* Add Source */}
-        <section style={{ marginBottom: '2rem' }}>
-          <hr className="section-rule" />
-          <p style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '0.68rem',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: '#555',
-            margin: '0.4rem 0',
-          }}>
-            Editorial Submissions
-          </p>
-          <hr className="section-rule" />
-          <div style={{ marginTop: '1rem' }}>
-            <AddSourceForm onAdded={fetchArticles} />
-          </div>
-        </section>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #1a1a1a' }}>
+          {(['feed', 'clipped', 'sources'] as Tab[]).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={tabStyle(t)}>
+              {t === 'feed' ? 'Latest Dispatches' : t === 'clipped' ? `Clippings (${clippedArticles.length})` : 'Sources'}
+            </button>
+          ))}
+        </div>
 
-        {/* Feed */}
-        <section>
-          <hr className="section-rule" />
-          <p style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '0.68rem',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: '#555',
-            margin: '0.4rem 0',
-          }}>
-            Latest Articles
-          </p>
-          <hr className="section-rule" />
+        {/* Tab Content */}
+        <div style={{ paddingTop: '1.5rem' }}>
 
-          <div style={{ marginTop: '1.5rem' }}>
-            {loading ? (
-              <p style={{
-                fontFamily: "'IM Fell English', serif",
-                fontStyle: 'italic',
-                color: '#777',
-                textAlign: 'center',
-                padding: '3rem 0',
-              }}>
-                Setting type...
-              </p>
-            ) : articles.length === 0 ? (
-              <p style={{
-                fontFamily: "'IM Fell English', serif",
-                fontStyle: 'italic',
-                color: '#777',
-                textAlign: 'center',
-                padding: '3rem 0',
-              }}>
-                No articles yet. The presses are idle.
-              </p>
+          {tab === 'feed' && (
+            loading ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>Setting type...</p>
+            ) : feedArticles.length === 0 ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>No dispatches yet. The presses are idle.</p>
             ) : (
               <div className="feed-columns">
-                {articles.map(article => (
-                  <ArticleCard key={article.id} article={article} />
+                {feedArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} />
                 ))}
               </div>
-            )}
-          </div>
-        </section>
+            )
+          )}
+
+          {tab === 'clipped' && (
+            clippedArticles.length === 0 ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>No clippings yet. Fold the corner of an article to save it.</p>
+            ) : (
+              <div className="feed-columns">
+                {clippedArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} />
+                ))}
+              </div>
+            )
+          )}
+
+          {tab === 'sources' && <SourcesTab />}
+        </div>
 
         {/* Footer */}
-        <footer style={{
-          marginTop: '3rem',
-          paddingTop: '1rem',
-          borderTop: '4px double #1a1a1a',
-          textAlign: 'center',
-        }}>
-          <p style={{
-            fontFamily: "'IM Fell English', serif",
-            fontSize: '0.72rem',
-            fontStyle: 'italic',
-            color: '#777',
-          }}>
+        <footer style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: '4px double #1a1a1a', textAlign: 'center' }}>
+          <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#777' }}>
             Printed daily by the automated press. Est. 2026.
           </p>
         </footer>
