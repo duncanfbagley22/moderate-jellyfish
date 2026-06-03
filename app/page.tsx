@@ -1,5 +1,9 @@
 import Link from 'next/link'
 
+export const metadata = {
+  title: "Duncan's Apps",
+}
+
 export default function Home() {
   return (
     <div style={{

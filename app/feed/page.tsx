@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
 
+export const metadata = {
+    title: 'The Daily Digest',
+  }
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -151,7 +155,7 @@ function ArticleCard({ article }: { article: Article }) {
       )}
 
       {/* Content */}
-      <div style={{
+      <div className="article-content" style={{
         fontFamily: "'IM Fell English', serif",
         fontSize: '0.92rem',
         lineHeight: '1.65',
@@ -476,6 +480,28 @@ export default function ArticleFeedPage() {
 
         .feed-columns article {
           break-inside: avoid;
+        }
+
+        .article-content p {
+        margin-bottom: 0.9rem;
+        text-indent: 1.5em;
+        }
+
+        .article-content p:first-child {
+        text-indent: 1.5em;
+        }
+
+        .article-content h1, .article-content h2, .article-content h3 {
+        font-family: 'Playfair Display', serif;
+        margin: 1rem 0 0.4rem;
+        }
+
+        .article-content ul, .article-content ol {
+        margin: 0.5rem 0 0.9rem 1.5rem;
+        }
+
+        .article-content li {
+        margin-bottom: 0.3rem;
         }
       `}</style>
 
