@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
-import { Check, X, Pencil, Trash2 } from 'lucide-react'
+import { Check, X, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,10 +109,12 @@ function ArticleCard({
   article,
   onArchive,
   onSaveToggle,
+  fontSize,
 }: {
   article: Article
   onArchive: (id: string) => void
   onSaveToggle: (id: string, saved: boolean) => void
+  fontSize: number
 }) {
   const [view, setView] = useState<ViewMode>('short')
   const [fading, setFading] = useState(false)
@@ -190,6 +192,7 @@ function ArticleCard({
       paddingRight: '2rem',
       opacity: fading ? 0 : 1,
       transition: 'opacity 0.5s ease',
+      fontSize: `${fontSize}rem`,
     }}>
       <DogEar saved={article.saved} onClick={handleSaveToggle} />
 
@@ -527,6 +530,9 @@ export default function ArticleFeedPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('feed')
+  const [page, setPage] = useState(0)
+  const [fontSize, setFontSize] = useState(1)
+  const PAGE_SIZE = 20;
 
   async function fetchArticles() {
     setLoading(true)
@@ -564,6 +570,8 @@ export default function ArticleFeedPage() {
 
   const feedArticles = articles.filter(a => !a.archived)
   const clippedArticles = articles.filter(a => a.saved)
+  const totalPages = Math.ceil(feedArticles.length / PAGE_SIZE)
+  const pagedArticles = feedArticles.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   const tabStyle = (t: Tab): React.CSSProperties => ({
     fontFamily: "'Playfair Display', serif",
@@ -628,24 +636,34 @@ export default function ArticleFeedPage() {
           </p>
           <hr className="masthead-rule" />
           <h1 style={{ fontFamily: "'UnifrakturMaguntia', cursive", fontSize: 'clamp(2.8rem, 8vw, 5rem)', color: '#0a0a0a', lineHeight: '1', letterSpacing: '-0.01em', margin: '0.4rem 0' }}>
-            The Daily Digest
+            Duncan's Daily Digest
           </h1>
           <hr className="masthead-rule" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem' }}>
             <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', fontStyle: 'italic', color: '#555' }}>
               "All the news that's fit to read"
             </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+                onClick={() => setFontSize(f => Math.max(0.85, f - 0.05))}
+                style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.8rem', border: '1px solid #aaa', background: 'transparent', width: '22px', height: '22px', cursor: 'pointer', color: '#555' }}
+            >A</button>
+            <button
+                onClick={() => setFontSize(f => Math.min(1.25, f + 0.05))}
+                style={{ fontFamily: "'IM Fell English', serif", fontSize: '1rem', border: '1px solid #aaa', background: 'transparent', width: '22px', height: '22px', cursor: 'pointer', color: '#555' }}
+            >A</button>
             <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', color: '#555' }}>
-              {feedArticles.length} dispatches
+                {feedArticles.length} dispatches
             </span>
+            </div>
           </div>
         </header>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #1a1a1a' }}>
           {(['feed', 'clipped', 'sources'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={tabStyle(t)}>
-              {t === 'feed' ? 'Latest Dispatches' : t === 'clipped' ? `Clippings (${clippedArticles.length})` : 'Sources'}
+            <button key={t} onClick={() => { setTab(t); setPage(0) }} style={tabStyle(t)}>
+              {t === 'feed' ? 'Latest Articles' : t === 'clipped' ? `Clippings (${clippedArticles.length})` : 'Sources'}
             </button>
           ))}
         </div>
@@ -657,11 +675,11 @@ export default function ArticleFeedPage() {
             loading ? (
               <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>Setting type...</p>
             ) : feedArticles.length === 0 ? (
-              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>No dispatches yet. The presses are idle.</p>
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', color: '#777', textAlign: 'center', padding: '3rem 0' }}>No articles yet. The presses are idle.</p>
             ) : (
               <div className="feed-columns">
-                {feedArticles.map(article => (
-                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} />
+                {pagedArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} fontSize={fontSize} />
                 ))}
               </div>
             )
@@ -673,7 +691,7 @@ export default function ArticleFeedPage() {
             ) : (
               <div className="feed-columns">
                 {clippedArticles.map(article => (
-                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} />
+                  <ArticleCard key={article.id} article={article} onArchive={handleArchive} onSaveToggle={handleSaveToggle} fontSize={fontSize} />
                 ))}
               </div>
             )
@@ -681,6 +699,42 @@ export default function ArticleFeedPage() {
 
           {tab === 'sources' && <SourcesTab />}
         </div>
+
+        {totalPages > 1 && (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #1a1a1a' }}>
+    <button
+      onClick={() => setPage(p => Math.max(0, p - 1))}
+      disabled={page === 0}
+      style={{
+        fontFamily: "'Playfair Display', serif", fontSize: '0.75rem',
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        padding: '0.4rem 1rem', border: '1px solid #1a1a1a',
+        background: 'transparent', color: page === 0 ? '#aaa' : '#1a1a1a',
+        borderColor: page === 0 ? '#aaa' : '#1a1a1a',
+        cursor: page === 0 ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <ChevronLeft size={14} />
+    </button>
+    <span style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', fontSize: '0.82rem', color: '#555' }}>
+      Page {page + 1} of {totalPages}
+    </span>
+    <button
+      onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+      disabled={page === totalPages - 1}
+      style={{
+        fontFamily: "'Playfair Display', serif", fontSize: '0.75rem',
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        padding: '0.4rem 1rem', border: '1px solid #1a1a1a',
+        background: 'transparent', color: page === totalPages - 1 ? '#aaa' : '#1a1a1a',
+        borderColor: page === totalPages - 1 ? '#aaa' : '#1a1a1a',
+        cursor: page === totalPages - 1 ? 'not-allowed' : 'pointer',
+      }}
+    >
+      <ChevronRight size={14} />
+    </button>
+  </div>
+)}
 
         {/* Footer */}
         <footer style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: '4px double #1a1a1a', textAlign: 'center' }}>
