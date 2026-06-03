@@ -209,7 +209,7 @@ function ArticleCard({
       {/* Title */}
       <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
         <h2
-          style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.25rem', fontWeight: '700', lineHeight: '1.3', marginBottom: '0.25rem', color: '#0a0a0a', letterSpacing: '-0.01em', cursor: 'pointer' }}
+          style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.25em', fontWeight: '700', lineHeight: '1.3', marginBottom: '0.25rem', color: '#0a0a0a', letterSpacing: '-0.01em', cursor: 'pointer' }}
           onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
           onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
         >
@@ -219,7 +219,7 @@ function ArticleCard({
 
       {/* Author */}
       {article.author && (
-        <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.78rem', color: '#555', fontStyle: 'italic', marginBottom: '0.6rem' }}>
+        <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.78em', color: '#555', fontStyle: 'italic', marginBottom: '0.6rem' }}>
           By {article.author}
         </p>
       )}
@@ -227,7 +227,7 @@ function ArticleCard({
       {/* Content */}
       <div className="article-content" style={{
         fontFamily: "'IM Fell English', serif",
-        fontSize: '0.92rem',
+        fontSize: '0.92em',
         lineHeight: '1.65',
         color: '#1a1a1a',
         marginBottom: '0.75rem',
@@ -653,7 +653,7 @@ export default function ArticleFeedPage() {
                 style={{ fontFamily: "'IM Fell English', serif", fontSize: '1rem', border: '1px solid #aaa', background: 'transparent', width: '22px', height: '22px', cursor: 'pointer', color: '#555' }}
             >A</button>
             <span style={{ fontFamily: "'IM Fell English', serif", fontSize: '0.72rem', color: '#555' }}>
-                {feedArticles.length} dispatches
+                {feedArticles.length} articles
             </span>
             </div>
           </div>
