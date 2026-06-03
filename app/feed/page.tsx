@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
 
-export const metadata = {
-    title: 'The Daily Digest',
-  }
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
