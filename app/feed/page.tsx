@@ -1149,11 +1149,13 @@ export default function ArticleFeedPage() {
       .limit(100);
 
     if (!error && data) {
-      const sorted = (data as unknown as Article[]).sort((a, b) => {
-        const scoreA = a.sources?.engagement_score ?? 0.5;
-        const scoreB = b.sources?.engagement_score ?? 0.5;
-        return scoreB - scoreA;
-      });
+        const sorted = (data as unknown as Article[])
+        .map(article => ({
+          article,
+          weight: (article.sources?.engagement_score ?? 0.5) + Math.random() * 0.4,
+        }))
+        .sort((a, b) => b.weight - a.weight)
+        .map(({ article }) => article);
       setArticles(sorted);
     }
     setLoading(false);
