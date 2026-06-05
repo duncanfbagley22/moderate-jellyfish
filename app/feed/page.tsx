@@ -654,7 +654,31 @@ function SourcesTab() {
   }
 
   async function handleSaveEdit(id: string) {
-    await supabase.from("sources").update(editForm).eq("id", id);
+    // 1. Explicitly pull out only the fields that are safe to modify
+    const updatePayload = {
+      name: editForm.name,
+      url: editForm.url,
+      type: editForm.type,
+      status: editForm.status,
+      max_articles: editForm.max_articles,
+      url_exclude: editForm.url_exclude,
+      url_pattern: editForm.url_pattern,
+      rss_url: editForm.rss_url,
+    };
+  
+    // 2. Send only that clean payload to Supabase
+    const { error } = await supabase
+      .from("sources")
+      .update(updatePayload)
+      .eq("id", id);
+  
+    // 3. Catch and alert any hidden structural/database errors
+    if (error) {
+      console.error("Supabase Update Error:", error.message, error.details);
+      alert(`Failed to save: ${error.message}`);
+      return;
+    }
+  
     setEditingId(null);
     fetchSources();
   }
