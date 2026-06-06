@@ -10,6 +10,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Archive,
 } from "lucide-react";
 
 const supabase = createClient(
@@ -34,6 +35,7 @@ interface Article {
   created_at: string;
   saved: boolean;
   archived: boolean;
+  category: string | null;
   sources: { id: string; name: string; engagement_score: number } | null;
   summaries: Summary | null;
 }
@@ -56,6 +58,28 @@ interface SourceRow {
 
 type ViewMode = "short" | "medium";
 type Tab = "feed" | "clipped" | "sources";
+type Category =
+  | "all"
+  | "local"
+  | "sports"
+  | "tech"
+  | "business"
+  | "science"
+  | "culture"
+  | "lifestyle"
+  | "other";
+
+const CATEGORIES: { key: Category; label: string }[] = [
+  { key: "all", label: "Front Page" },
+  { key: "local", label: "Local" },
+  { key: "sports", label: "Sports" },
+  { key: "tech", label: "Tech" },
+  { key: "business", label: "Business" },
+  { key: "science", label: "Science" },
+  { key: "culture", label: "Culture" },
+  { key: "lifestyle", label: "Lifestyle" },
+  { key: "other", label: "Other" },
+];
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -162,7 +186,6 @@ function FullTextModal({
           position: "relative",
         }}
       >
-        {/* Modal Header */}
         <div
           style={{
             padding: "1.25rem 1.5rem 1rem",
@@ -207,7 +230,6 @@ function FullTextModal({
           )}
         </div>
 
-        {/* Close X */}
         <button
           onClick={onClose}
           style={{
@@ -226,7 +248,6 @@ function FullTextModal({
           <X size={18} strokeWidth={2} />
         </button>
 
-        {/* Scrollable Content */}
         <div
           className="article-content"
           style={{
@@ -246,7 +267,6 @@ function FullTextModal({
           )}
         </div>
 
-        {/* Modal Footer */}
         <div
           style={{
             padding: "1rem 1.5rem",
@@ -376,6 +396,18 @@ function ArticleCard({
         .eq("id", article.id);
       setTimeout(() => onArchive(article.id), 500);
     }
+  }
+
+  async function handleDismiss() {
+    setFading(true);
+    await supabase
+      .from("articles")
+      .update({
+        archived: true,
+        archived_at: new Date().toISOString(),
+      })
+      .eq("id", article.id);
+    setTimeout(() => onArchive(article.id), 500);
   }
 
   async function handleSaveToggle() {
@@ -533,7 +565,6 @@ function ArticleCard({
             </button>
           ))}
 
-          {/* Full Text button — opens modal */}
           <button
             onClick={() => setShowModal(true)}
             style={{
@@ -552,6 +583,7 @@ function ArticleCard({
             Full Text
           </button>
 
+          {/* Rating + Dismiss buttons */}
           <div style={{ display: "flex", gap: "0.3rem", marginLeft: "0.5rem" }}>
             <button
               onClick={() => handleRating(1)}
@@ -590,6 +622,25 @@ function ArticleCard({
               }}
             >
               <X size={13} strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={handleDismiss}
+              title="Dismiss"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "26px",
+                height: "26px",
+                border: "1px solid #aaa",
+                background: "transparent",
+                color: "#888",
+                cursor: "pointer",
+                borderRadius: "2px",
+                transition: "all 0.15s",
+              }}
+            >
+              <Archive size={13} strokeWidth={2} />
             </button>
           </div>
 
@@ -654,7 +705,6 @@ function SourcesTab() {
   }
 
   async function handleSaveEdit(id: string) {
-    // 1. Explicitly pull out only the fields that are safe to modify
     const updatePayload = {
       name: editForm.name,
       url: editForm.url,
@@ -665,20 +715,18 @@ function SourcesTab() {
       url_pattern: editForm.url_pattern,
       rss_url: editForm.rss_url,
     };
-  
-    // 2. Send only that clean payload to Supabase
+
     const { error } = await supabase
       .from("sources")
       .update(updatePayload)
       .eq("id", id);
-  
-    // 3. Catch and alert any hidden structural/database errors
+
     if (error) {
       console.error("Supabase Update Error:", error.message, error.details);
       alert(`Failed to save: ${error.message}`);
       return;
     }
-  
+
     setEditingId(null);
     fetchSources();
   }
@@ -804,16 +852,8 @@ function SourcesTab() {
             {[
               { label: "URL *", key: "url", placeholder: "https://..." },
               { label: "Name *", key: "name", placeholder: "The Ringer" },
-              {
-                label: "URL Exclude",
-                key: "url_exclude",
-                placeholder: "/podcasts",
-              },
-              {
-                label: "URL Pattern",
-                key: "url_pattern",
-                placeholder: "/articles/",
-              },
+              { label: "URL Exclude", key: "url_exclude", placeholder: "/podcasts" },
+              { label: "URL Pattern", key: "url_pattern", placeholder: "/articles/" },
               { label: "RSS URL", key: "rss_url", placeholder: "https://..." },
             ].map(({ label, key, placeholder }) => (
               <div key={key}>
@@ -832,77 +872,38 @@ function SourcesTab() {
                 <input
                   style={inputStyle}
                   placeholder={placeholder}
-                  value={
-                    ((newForm as Record<string, unknown>)[key] as string) ?? ""
-                  }
-                  onChange={(e) =>
-                    setNewForm((f) => ({ ...f, [key]: e.target.value }))
-                  }
+                  value={((newForm as Record<string, unknown>)[key] as string) ?? ""}
+                  onChange={(e) => setNewForm((f) => ({ ...f, [key]: e.target.value }))}
                 />
               </div>
             ))}
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
+              <label style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", fontStyle: "italic", color: "#555", display: "block", marginBottom: "0.2rem" }}>
                 Type
               </label>
               <select
                 style={inputStyle}
                 value={newForm.type}
-                onChange={(e) =>
-                  setNewForm((f) => ({
-                    ...f,
-                    type: e.target.value as "rss" | "scrape",
-                  }))
-                }
+                onChange={(e) => setNewForm((f) => ({ ...f, type: e.target.value as "rss" | "scrape" }))}
               >
                 <option value="scrape">Scrape</option>
                 <option value="rss">RSS</option>
               </select>
             </div>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
+              <label style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", fontStyle: "italic", color: "#555", display: "block", marginBottom: "0.2rem" }}>
                 Max Articles
               </label>
               <input
                 style={inputStyle}
                 type="number"
                 value={newForm.max_articles}
-                onChange={(e) =>
-                  setNewForm((f) => ({
-                    ...f,
-                    max_articles: parseInt(e.target.value),
-                  }))
-                }
+                onChange={(e) => setNewForm((f) => ({ ...f, max_articles: parseInt(e.target.value) }))}
               />
             </div>
           </div>
           {error && (
-            <p
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                color: "#8b0000",
-                fontSize: "0.8rem",
-                marginBottom: "0.5rem",
-              }}
-            >
+            <p style={{ fontFamily: "'IM Fell English', serif", color: "#8b0000", fontSize: "0.8rem", marginBottom: "0.5rem" }}>
               {error}
             </p>
           )}
@@ -926,14 +927,7 @@ function SourcesTab() {
       )}
 
       {loading ? (
-        <p
-          style={{
-            fontFamily: "'IM Fell English', serif",
-            fontStyle: "italic",
-            color: "#777",
-            padding: "2rem 0",
-          }}
-        >
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", padding: "2rem 0" }}>
           Loading sources...
         </p>
       ) : (
@@ -941,18 +935,8 @@ function SourcesTab() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {[
-                  "Name",
-                  "URL",
-                  "Type",
-                  "Status",
-                  "Max",
-                  "Score",
-                  "Actions",
-                ].map((h) => (
-                  <th key={h} style={headStyle}>
-                    {h}
-                  </th>
+                {["Name", "URL", "Type", "Status", "Max", "Score", "Actions"].map((h) => (
+                  <th key={h} style={headStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -961,176 +945,49 @@ function SourcesTab() {
                 <tr key={source.id}>
                   {editingId === source.id ? (
                     <>
+                      <td style={cellStyle}><input style={inputStyle} value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} /></td>
+                      <td style={cellStyle}><input style={inputStyle} value={editForm.url ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, url: e.target.value }))} /></td>
                       <td style={cellStyle}>
-                        <input
-                          style={inputStyle}
-                          value={editForm.name ?? ""}
-                          onChange={(e) =>
-                            setEditForm((f) => ({ ...f, name: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td style={cellStyle}>
-                        <input
-                          style={inputStyle}
-                          value={editForm.url ?? ""}
-                          onChange={(e) =>
-                            setEditForm((f) => ({ ...f, url: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td style={cellStyle}>
-                        <select
-                          style={inputStyle}
-                          value={editForm.type ?? "scrape"}
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              type: e.target.value as "rss" | "scrape",
-                            }))
-                          }
-                        >
+                        <select style={inputStyle} value={editForm.type ?? "scrape"} onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value as "rss" | "scrape" }))}>
                           <option value="scrape">Scrape</option>
                           <option value="rss">RSS</option>
                         </select>
                       </td>
                       <td style={cellStyle}>
-                        <select
-                          style={inputStyle}
-                          value={editForm.status ?? "active"}
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              status: e.target.value,
-                            }))
-                          }
-                        >
+                        <select style={inputStyle} value={editForm.status ?? "active"} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}>
                           <option value="active">Active</option>
                           <option value="paused">Paused</option>
                         </select>
                       </td>
-                      <td style={cellStyle}>
-                        <input
-                          style={{ ...inputStyle, width: "50px" }}
-                          type="number"
-                          value={editForm.max_articles ?? 10}
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              max_articles: parseInt(e.target.value),
-                            }))
-                          }
-                        />
-                      </td>
-                      <td style={cellStyle}>
-                        {source.engagement_score?.toFixed(2)}
-                      </td>
+                      <td style={cellStyle}><input style={{ ...inputStyle, width: "50px" }} type="number" value={editForm.max_articles ?? 10} onChange={(e) => setEditForm((f) => ({ ...f, max_articles: parseInt(e.target.value) }))} /></td>
+                      <td style={cellStyle}>{source.engagement_score?.toFixed(2)}</td>
                       <td style={cellStyle}>
                         <div style={{ display: "flex", gap: "0.4rem" }}>
-                          <button
-                            onClick={() => handleSaveEdit(source.id)}
-                            style={{
-                              fontFamily: "'IM Fell English', serif",
-                              fontSize: "0.75rem",
-                              padding: "0.2rem 0.5rem",
-                              border: "1px solid #2d6a2d",
-                              background: "#2d6a2d",
-                              color: "#fff",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            style={{
-                              fontFamily: "'IM Fell English', serif",
-                              fontSize: "0.75rem",
-                              padding: "0.2rem 0.5rem",
-                              border: "1px solid #aaa",
-                              background: "transparent",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Cancel
-                          </button>
+                          <button onClick={() => handleSaveEdit(source.id)} style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.75rem", padding: "0.2rem 0.5rem", border: "1px solid #2d6a2d", background: "#2d6a2d", color: "#fff", cursor: "pointer" }}>Save</button>
+                          <button onClick={() => setEditingId(null)} style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.75rem", padding: "0.2rem 0.5rem", border: "1px solid #aaa", background: "transparent", cursor: "pointer" }}>Cancel</button>
                         </div>
                       </td>
                     </>
                   ) : (
                     <>
                       <td style={cellStyle}>{source.name}</td>
-                      <td
-                        style={{
-                          ...cellStyle,
-                          maxWidth: "200px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#555", textDecoration: "underline" }}
-                        >
-                          {source.url}
-                        </a>
+                      <td style={{ ...cellStyle, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <a href={source.url} target="_blank" rel="noopener noreferrer" style={{ color: "#555", textDecoration: "underline" }}>{source.url}</a>
                       </td>
                       <td style={cellStyle}>{source.type}</td>
                       <td style={cellStyle}>
-                        <span
-                          style={{
-                            padding: "0.1rem 0.4rem",
-                            border: "1px solid",
-                            borderColor:
-                              source.status === "active" ? "#2d6a2d" : "#888",
-                            color:
-                              source.status === "active" ? "#2d6a2d" : "#888",
-                            fontSize: "0.7rem",
-                            fontFamily: "'IM Fell English', serif",
-                            fontStyle: "italic",
-                          }}
-                        >
+                        <span style={{ padding: "0.1rem 0.4rem", border: "1px solid", borderColor: source.status === "active" ? "#2d6a2d" : "#888", color: source.status === "active" ? "#2d6a2d" : "#888", fontSize: "0.7rem", fontFamily: "'IM Fell English', serif", fontStyle: "italic" }}>
                           {source.status}
                         </span>
                       </td>
                       <td style={cellStyle}>{source.max_articles}</td>
-                      <td style={cellStyle}>
-                        {source.engagement_score?.toFixed(2)}
-                      </td>
+                      <td style={cellStyle}>{source.engagement_score?.toFixed(2)}</td>
                       <td style={cellStyle}>
                         <div style={{ display: "flex", gap: "0.4rem" }}>
-                          <button
-                            onClick={() => {
-                              setEditingId(source.id);
-                              setEditForm(source);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              background: "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#555",
-                              padding: "0.2rem",
-                            }}
-                          >
+                          <button onClick={() => { setEditingId(source.id); setEditForm(source); }} style={{ display: "flex", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", color: "#555", padding: "0.2rem" }}>
                             <Pencil size={14} />
                           </button>
-                          <button
-                            onClick={() => handleDelete(source.id)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              background: "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#8b0000",
-                              padding: "0.2rem",
-                            }}
-                          >
+                          <button onClick={() => handleDelete(source.id)} style={{ display: "flex", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", color: "#8b0000", padding: "0.2rem" }}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -1153,6 +1010,7 @@ export default function ArticleFeedPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("feed");
+  const [category, setCategory] = useState<Category>("all");
   const [page, setPage] = useState(0);
   const [fontSize, setFontSize] = useState(1);
   const PAGE_SIZE = 20;
@@ -1161,20 +1019,18 @@ export default function ArticleFeedPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("articles")
-      .select(
-        `
-        id, url, title, author, published_at, raw_text, created_at, saved, archived,
+      .select(`
+        id, url, title, author, published_at, raw_text, created_at, saved, archived, category,
         sources(id, name, engagement_score),
         summaries(short, medium)
-      `,
-      )
+      `)
       .eq("archived", false)
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (!error && data) {
-        const sorted = (data as unknown as Article[])
-        .map(article => ({
+      const sorted = (data as unknown as Article[])
+        .map((article) => ({
           article,
           weight: (article.sources?.engagement_score ?? 0.5) + Math.random() * 0.4,
         }))
@@ -1194,25 +1050,30 @@ export default function ArticleFeedPage() {
   }
 
   function handleSaveToggle(id: string, saved: boolean) {
-    setArticles((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, saved } : a)),
-    );
+    setArticles((prev) => prev.map((a) => (a.id === id ? { ...a, saved } : a)));
   }
 
   const feedArticles = articles.filter((a) => !a.archived);
   const clippedArticles = articles.filter((a) => a.saved);
-  const totalPages = Math.ceil(feedArticles.length / PAGE_SIZE);
-  const pagedArticles = feedArticles.slice(
+
+  const filteredArticles =
+    category === "all"
+      ? feedArticles
+      : feedArticles.filter((a) => a.category === category);
+
+  const totalPages = Math.ceil(filteredArticles.length / PAGE_SIZE);
+  const pagedArticles = filteredArticles.slice(
     page * PAGE_SIZE,
     (page + 1) * PAGE_SIZE,
   );
 
-  const tabStyle = (t: Tab): React.CSSProperties => ({
+  // Tab styles for right-side tabs (Clippings, Sources)
+  const rightTabStyle = (t: Tab): React.CSSProperties => ({
     fontFamily: "'Playfair Display', serif",
     fontSize: "0.72rem",
     letterSpacing: "0.12em",
     textTransform: "uppercase",
-    padding: "0.4rem 1.2rem",
+    padding: "0.4rem 1rem",
     border: "1px solid #1a1a1a",
     borderBottom: tab === t ? "none" : "1px solid #1a1a1a",
     background: tab === t ? "#f5f0e8" : "#e8e3d8",
@@ -1221,6 +1082,25 @@ export default function ArticleFeedPage() {
     marginBottom: tab === t ? "-1px" : "0",
     position: "relative",
     zIndex: tab === t ? 1 : 0,
+    whiteSpace: "nowrap" as const,
+  });
+
+  // Category tab styles (left side)
+  const catTabStyle = (c: Category): React.CSSProperties => ({
+    fontFamily: "'Playfair Display', serif",
+    fontSize: "0.68rem",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    padding: "0.4rem 0.8rem",
+    border: "1px solid #1a1a1a",
+    borderBottom: tab === "feed" && category === c ? "none" : "1px solid #1a1a1a",
+    background: tab === "feed" && category === c ? "#f5f0e8" : "#e8e3d8",
+    color: "#1a1a1a",
+    cursor: "pointer",
+    marginBottom: tab === "feed" && category === c ? "-1px" : "0",
+    position: "relative",
+    zIndex: tab === "feed" && category === c ? 1 : 0,
+    whiteSpace: "nowrap" as const,
   });
 
   return (
@@ -1259,160 +1139,96 @@ export default function ArticleFeedPage() {
         }
         .article-content ul, .article-content ol { margin: 0.5rem 0 0.9rem 1.5rem; }
         .article-content li { margin-bottom: 0.3rem; }
+
+        .tab-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 1px solid #1a1a1a;
+          flex-wrap: wrap;
+          gap: 0.25rem 0;
+        }
+
+        .tab-bar-left {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0;
+        }
+
+        .tab-bar-right {
+          display: flex;
+          gap: 0;
+        }
       `}</style>
 
-      <div
-        style={{
-          maxWidth: "960px",
-          margin: "0 auto",
-          padding: "2rem 1.5rem",
-          minHeight: "100vh",
-        }}
-      >
+      <div style={{ maxWidth: "960px", margin: "0 auto", padding: "2rem 1.5rem", minHeight: "100vh" }}>
+
         {/* Masthead */}
         <header style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-          <p
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72rem",
-              letterSpacing: "0.12em",
-              color: "#555",
-              textTransform: "uppercase",
-              marginBottom: "0.5rem",
-            }}
-          >
+          <p style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", letterSpacing: "0.12em", color: "#555", textTransform: "uppercase", marginBottom: "0.5rem" }}>
             {getTodayHeader()}
           </p>
           <hr className="masthead-rule" />
-          <h1
-            style={{
-              fontFamily: "'UnifrakturMaguntia', cursive",
-              fontSize: "clamp(2.8rem, 8vw, 5rem)",
-              color: "#0a0a0a",
-              lineHeight: "1",
-              letterSpacing: "-0.01em",
-              margin: "0.4rem 0",
-            }}
-          >
+          <h1 style={{ fontFamily: "'UnifrakturMaguntia', cursive", fontSize: "clamp(2.8rem, 8vw, 5rem)", color: "#0a0a0a", lineHeight: "1", letterSpacing: "-0.01em", margin: "0.4rem 0" }}>
             Duncan's Daily Digest
           </h1>
           <hr className="masthead-rule" />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "0.4rem",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontSize: "0.72rem",
-                fontStyle: "italic",
-                color: "#555",
-              }}
-            >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.4rem" }}>
+            <span style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", fontStyle: "italic", color: "#555" }}>
               "All the news that's fit to read"
             </span>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
               <button
                 onClick={() => setFontSize((f) => Math.max(0.85, f - 0.05))}
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.8rem",
-                  border: "1px solid #aaa",
-                  background: "transparent",
-                  width: "22px",
-                  height: "22px",
-                  cursor: "pointer",
-                  color: "#555",
-                }}
-              >
-                A
-              </button>
+                style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.8rem", border: "1px solid #aaa", background: "transparent", width: "22px", height: "22px", cursor: "pointer", color: "#555" }}
+              >A</button>
               <button
                 onClick={() => setFontSize((f) => Math.min(1.25, f + 0.05))}
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "1rem",
-                  border: "1px solid #aaa",
-                  background: "transparent",
-                  width: "22px",
-                  height: "22px",
-                  cursor: "pointer",
-                  color: "#555",
-                }}
-              >
-                A
-              </button>
-              <span
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  color: "#555",
-                }}
-              >
-                {feedArticles.length} articles
+                style={{ fontFamily: "'IM Fell English', serif", fontSize: "1rem", border: "1px solid #aaa", background: "transparent", width: "22px", height: "22px", cursor: "pointer", color: "#555" }}
+              >A</button>
+              <span style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", color: "#555" }}>
+                {filteredArticles.length} articles
               </span>
             </div>
           </div>
         </header>
 
-        {/* Tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0",
-            borderBottom: "1px solid #1a1a1a",
-          }}
-        >
-          {(["feed", "clipped", "sources"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setTab(t);
-                setPage(0);
-              }}
-              style={tabStyle(t)}
-            >
-              {t === "feed"
-                ? "Latest Articles"
-                : t === "clipped"
-                  ? `Clippings (${clippedArticles.length})`
-                  : "Sources"}
+        {/* Tab Bar */}
+        <div className="tab-bar">
+          {/* Left: category tabs */}
+          <div className="tab-bar-left">
+            {CATEGORIES.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => { setTab("feed"); setCategory(key); setPage(0); }}
+                style={catTabStyle(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Clippings + Sources */}
+          <div className="tab-bar-right">
+            <button onClick={() => { setTab("clipped"); setPage(0); }} style={rightTabStyle("clipped")}>
+              Clippings ({clippedArticles.length})
             </button>
-          ))}
+            <button onClick={() => { setTab("sources"); setPage(0); }} style={rightTabStyle("sources")}>
+              Sources
+            </button>
+          </div>
         </div>
 
         {/* Tab Content */}
         <div style={{ paddingTop: "1.5rem" }}>
-          {tab === "feed" &&
-            (loading ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
+          {tab === "feed" && (
+            loading ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>
                 Setting type...
               </p>
-            ) : feedArticles.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
-                No articles yet. The presses are idle.
+            ) : filteredArticles.length === 0 ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>
+                No dispatches in this section. The presses are idle.
               </p>
             ) : (
               <div className="feed-columns">
@@ -1426,19 +1242,12 @@ export default function ArticleFeedPage() {
                   />
                 ))}
               </div>
-            ))}
+            )
+          )}
 
-          {tab === "clipped" &&
-            (clippedArticles.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
+          {tab === "clipped" && (
+            clippedArticles.length === 0 ? (
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>
                 No clippings yet. Fold the corner of an article to save it.
               </p>
             ) : (
@@ -1453,73 +1262,29 @@ export default function ArticleFeedPage() {
                   />
                 ))}
               </div>
-            ))}
+            )
+          )}
 
           {tab === "sources" && <SourcesTab />}
         </div>
 
         {/* Pagination — feed tab only */}
         {tab === "feed" && totalPages > 1 && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "1.5rem",
-              marginTop: "2rem",
-              paddingTop: "1rem",
-              borderTop: "1px solid #1a1a1a",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1.5rem", marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #1a1a1a" }}>
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "0.75rem",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "0.4rem 1rem",
-                border: "1px solid",
-                background: "transparent",
-                color: page === 0 ? "#aaa" : "#1a1a1a",
-                borderColor: page === 0 ? "#aaa" : "#1a1a1a",
-                cursor: page === 0 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.4rem 1rem", border: "1px solid", background: "transparent", color: page === 0 ? "#aaa" : "#1a1a1a", borderColor: page === 0 ? "#aaa" : "#1a1a1a", cursor: page === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
             >
               <ChevronLeft size={14} />
             </button>
-            <span
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontStyle: "italic",
-                fontSize: "0.82rem",
-                color: "#555",
-              }}
-            >
+            <span style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "0.82rem", color: "#555" }}>
               Page {page + 1} of {totalPages}
             </span>
             <button
-              onClick={() =>
-                setPage((p) => Math.min(totalPages - 1, p + 1))
-              }
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "0.75rem",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "0.4rem 1rem",
-                border: "1px solid",
-                background: "transparent",
-                color: page === totalPages - 1 ? "#aaa" : "#1a1a1a",
-                borderColor: page === totalPages - 1 ? "#aaa" : "#1a1a1a",
-                cursor: page === totalPages - 1 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.4rem 1rem", border: "1px solid", background: "transparent", color: page === totalPages - 1 ? "#aaa" : "#1a1a1a", borderColor: page === totalPages - 1 ? "#aaa" : "#1a1a1a", cursor: page === totalPages - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
             >
               <ChevronRight size={14} />
             </button>
@@ -1527,22 +1292,8 @@ export default function ArticleFeedPage() {
         )}
 
         {/* Footer */}
-        <footer
-          style={{
-            marginTop: "3rem",
-            paddingTop: "1rem",
-            borderTop: "4px double #1a1a1a",
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72rem",
-              fontStyle: "italic",
-              color: "#777",
-            }}
-          >
+        <footer style={{ marginTop: "3rem", paddingTop: "1rem", borderTop: "4px double #1a1a1a", textAlign: "center" }}>
+          <p style={{ fontFamily: "'IM Fell English', serif", fontSize: "0.72rem", fontStyle: "italic", color: "#777" }}>
             Printed daily by the automated press. Est. 2026.
           </p>
         </footer>

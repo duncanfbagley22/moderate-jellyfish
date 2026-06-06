@@ -15,7 +15,8 @@ Respond in this exact JSON format with no additional text or markdown:
   "author": "...",
   "published_at": "...",
   "short": "...",
-  "medium": "..."
+  "medium": "...",
+  "category": "..."
 }
 
 Rules:
@@ -24,6 +25,15 @@ Rules:
 - published_at: ISO 8601 date string (e.g. "2026-05-31T00:00:00Z"). If not found, null.
 - short: 1-2 sentences. The core point only.
 - medium: 1 paragraph (4-6 sentences). Key points, context, and why it matters.
+- category: pick exactly one from this list based on the article content:
+  "local" (North Carolina or Utah news only),
+  "sports",
+  "tech",
+  "business" (includes finance, economics, markets),
+  "science",
+  "culture" (arts, entertainment, media),
+  "lifestyle" (learning, urbanism, food, health, self-improvement),
+  "other"
 
 Article:
 ${text.slice(0, 20000)}
@@ -67,7 +77,7 @@ export async function summarizeArticles(
       const raw = result.response.text().trim()
       const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
 
-      let parsed: { title: string | null; author: string | null; published_at: string | null; short: string; medium: string }
+      let parsed: { title: string | null; author: string | null; published_at: string | null; short: string; medium: string; category: string | null  }
       try {
         parsed = JSON.parse(cleaned)
       } catch {
@@ -81,13 +91,14 @@ export async function summarizeArticles(
       }
 
             // Write metadata back to articles table if extracted
-            if (parsed.title || parsed.author || parsed.published_at) {
+            if (parsed.title || parsed.author || parsed.published_at || parsed.category) {
               await supabase
                 .from('articles')
                 .update({
                   ...(parsed.title && { title: parsed.title }),
                   ...(parsed.author && { author: parsed.author }),
                   ...(parsed.published_at && { published_at: parsed.published_at }),
+                  ...(parsed.category && { category: parsed.category }),
                 })
                 .eq('id', article.id)
             }
