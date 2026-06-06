@@ -3,7 +3,6 @@ import supabase from './db'
 const ARCHIVE_AFTER_DAYS = 3
 
 async function runArchive() {
-  console.log('[archive] Starting:', new Date().toISOString())
 
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - ARCHIVE_AFTER_DAYS)

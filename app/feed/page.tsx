@@ -73,7 +73,6 @@ type Category =
   | "other";
 
 const CATEGORIES: { key: Category; label: string }[] = [
-  { key: "all", label: "Front Page" },
   { key: "local", label: "Local" },
   { key: "sports", label: "Sports" },
   { key: "tech", label: "Tech" },
@@ -691,7 +690,7 @@ export default function ArticleFeedPage() {
               onClick={() => { setTab("feed"); setCategory("all"); setPage(0); }}
               style={{
                 fontFamily: "'IM Fell English', serif",
-                fontSize: "0.72rem",
+                fontSize: "1rem",
                 fontStyle: "italic",
                 color: tab === "feed" && category === "all" ? "#0a0a0a" : "#555",
                 background: "transparent",
@@ -812,7 +811,7 @@ export default function ArticleFeedPage() {
             loading ? (
               <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>Setting type...</p>
             ) : filteredArticles.length === 0 ? (
-              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>No dispatches in this section. The presses are idle.</p>
+              <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "#777", textAlign: "center", padding: "3rem 0" }}>No articles in this section. The presses are idle.</p>
             ) : (
               <div className="feed-columns">
                 {pagedArticles.map((article) => (

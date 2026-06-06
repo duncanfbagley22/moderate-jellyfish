@@ -313,7 +313,7 @@ export default function SleepTracker() {
               ))}
             </div>
             <img
-              src="/moderate_jellyfish.png"
+              src="/moderate-jellyfish.svg"
               alt=""
               className="loading-logo"
               aria-hidden="true"
