@@ -726,19 +726,6 @@ export default function ArticleFeedPage() {
         {(tab === "feed" || tab === "clipped" || tab === "sources") && (
           <div style={{ position: "relative", borderBottom: "1px solid #1a1a1a", display: "flex", alignItems: "flex-end" }} ref={menuRef}>
 
-            {/* Inline tabs — hidden on narrow via CSS */}
-            <div className="cat-tab-row">
-              {CATEGORIES.map(({ key, label }) => (
-                <button
-                  key={key}
-                  className="cat-tab"
-                  onClick={() => { setTab("feed"); setCategory(key); setPage(0); }}
-                  style={catTabStyle(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
 
             {/* Hamburger — shown on narrow via CSS */}
             <button
@@ -763,6 +750,20 @@ export default function ArticleFeedPage() {
               <Menu size={14} />
               {currentCategoryLabel}
             </button>
+
+            {/* Inline tabs — hidden on narrow via CSS */}
+            <div className="cat-tab-row">
+              {CATEGORIES.map(({ key, label }) => (
+                <button
+                  key={key}
+                  className="cat-tab"
+                  onClick={() => { setTab("feed"); setCategory(key); setPage(0); }}
+                  style={catTabStyle(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {/* Dropdown menu */}
             {menuOpen && (
