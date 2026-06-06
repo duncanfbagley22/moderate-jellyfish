@@ -16,8 +16,13 @@ export const metadata: Metadata = {
   title: "Moderate Jellyfish",
   description: "Random things",
   icons: {
-    icon: { url: "/moderate-jellyfish.svg", type: "image/svg", sizes: "32x32" },
-    apple: { url: "/moderate-jellyfish.svg", type: "image/svg" },
+    icon: [
+      { url: "/moderate-jellyfish.svg", type: "image/svg+xml" }, // Changed type slightly to 'image/svg+xml'
+      { url: "/moderate-jellyfish.png", type: "image/png", sizes: "32x32" },    // Fallback for older browsers
+    ],
+    apple: [
+      { url: "/moderate-jellyfish.png", sizes: "180x180", type: "image/png" }, // iOS prefers a square PNG, 180x180 is ideal
+    ],
   },
 };
 
