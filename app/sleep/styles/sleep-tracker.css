@@ -122,6 +122,12 @@
   gap: 10px;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* spacing between back button and wordmark */
+}
+
 .hdr-date {
   font-size: 12px;
   font-weight: 600;
@@ -820,4 +826,28 @@
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 0.06em;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 18px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-back:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn-back:active {
+  transform: scale(0.96);
 }

@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   clearSleepLogs,
   loadSleepData,
   saveSettings as persistSettings,
   upsertSleepLog,
-} from "@/lib/sleep/db";
-import type { SleepConfig, SleepEntry } from "@/lib/sleep/types";
-import { loadUiState, saveUiState } from "@/lib/sleep/ui-state";
+} from "@/app/sleep/lib/db";
+import type { SleepConfig, SleepEntry } from "@/app/sleep/lib/types";
+import { loadUiState, saveUiState } from "@/app/sleep/lib/ui-state";
 import {
   avgDur,
   calcDur,
@@ -25,8 +31,9 @@ import {
   localDateString,
   todayDate,
   toGrade,
-} from "@/lib/sleep/utils";
-import "@/app/sleep-tracker.css";
+} from "@/app/sleep/lib/utils";
+import BackHome from "@/components/BackHome";
+import "@/app/sleep/styles/sleep-tracker.css";
 
 type Tab = "log" | "dash" | "history" | "settings";
 
@@ -38,23 +45,38 @@ function Legend() {
   return (
     <div className="legend-row">
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-on)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-on)" }}
+        />
         On target
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-close)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-close)" }}
+        />
         Close
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-off)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-off)" }}
+        />
         Off
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-miss)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-miss)" }}
+        />
         Miss
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-0)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-0)" }}
+        />
         No data
       </div>
     </div>
@@ -65,19 +87,31 @@ function HistoryLegend() {
   return (
     <div className="legend-row">
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-on)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-on)" }}
+        />
         On target
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-close)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-close)" }}
+        />
         Close
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-off)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-off)" }}
+        />
         Off
       </div>
       <div className="legend-item">
-        <div className="legend-swatch" style={{ background: "var(--heat-miss)" }} />
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-miss)" }}
+        />
         Miss
       </div>
     </div>
@@ -171,8 +205,14 @@ export default function SleepTracker() {
     });
   }, [logDate]);
 
-  const sleepPreview = inpSleep && inpWake ? offsetCard(calcOffset(inpSleep, cfg.targetSleep)) : null;
-  const wakePreview = inpSleep && inpWake ? offsetCard(calcOffset(inpWake, cfg.targetWake)) : null;
+  const sleepPreview =
+    inpSleep && inpWake
+      ? offsetCard(calcOffset(inpSleep, cfg.targetSleep))
+      : null;
+  const wakePreview =
+    inpSleep && inpWake
+      ? offsetCard(calcOffset(inpWake, cfg.targetWake))
+      : null;
   const durPreview = inpSleep && inpWake ? calcDur(inpSleep, inpWake) : null;
 
   const pct = score7(entries, cfg);
@@ -299,7 +339,11 @@ export default function SleepTracker() {
   if (loading) {
     return (
       <div className="sleep-tracker-page">
-        <div className="sleep-tracker-loading" aria-live="polite" aria-busy="true">
+        <div
+          className="sleep-tracker-loading"
+          aria-live="polite"
+          aria-busy="true"
+        >
           <div className="loading-scene">
             <div className="loading-orbit" aria-hidden="true">
               {Array.from({ length: 8 }, (_, i) => (
@@ -329,9 +373,16 @@ export default function SleepTracker() {
     <div className="sleep-tracker-page">
       <div className="sleep-tracker-root">
         <div className="topbar">
-          <div className="wordmark">
-            sleepy<div className="wordmark-dot" />
+          <div className="topbar-left">
+            <BackHome className="btn-back">
+              <i className="ti ti-arrow-left" />
+            </BackHome>
+            <div className="wordmark">
+              sleepy
+              <div className="wordmark-dot" />
+            </div>
           </div>
+
           <div className="topbar-right">
             <div className="hdr-date">{headerDate}</div>
             <button
@@ -400,8 +451,13 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {sleepPreview ? (
                     <>
-                      <i className={`ti ${sleepPreview.icon}`} style={{ color: sleepPreview.color }} />
-                      <span style={{ color: sleepPreview.color }}>{sleepPreview.txt}</span>
+                      <i
+                        className={`ti ${sleepPreview.icon}`}
+                        style={{ color: sleepPreview.color }}
+                      />
+                      <span style={{ color: sleepPreview.color }}>
+                        {sleepPreview.txt}
+                      </span>
                     </>
                   ) : (
                     <span style={{ color: "var(--muted)" }}>—</span>
@@ -413,8 +469,13 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {wakePreview ? (
                     <>
-                      <i className={`ti ${wakePreview.icon}`} style={{ color: wakePreview.color }} />
-                      <span style={{ color: wakePreview.color }}>{wakePreview.txt}</span>
+                      <i
+                        className={`ti ${wakePreview.icon}`}
+                        style={{ color: wakePreview.color }}
+                      />
+                      <span style={{ color: wakePreview.color }}>
+                        {wakePreview.txt}
+                      </span>
                     </>
                   ) : (
                     <span style={{ color: "var(--muted)" }}>—</span>
@@ -426,7 +487,10 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {durPreview !== null ? (
                     <>
-                      <i className="ti ti-moon" style={{ color: "var(--blue)" }} />
+                      <i
+                        className="ti ti-moon"
+                        style={{ color: "var(--blue)" }}
+                      />
                       <span style={{ color: "var(--text)" }}>
                         {Math.floor(durPreview / 60)}h {durPreview % 60}m
                       </span>
@@ -457,15 +521,19 @@ export default function SleepTracker() {
                   </div>
                   <div className="today-sub">
                     {fmt12(logDateEntry.sleep)} — {fmt12(logDateEntry.wake)} ·{" "}
-                    {Math.floor(calcDur(logDateEntry.sleep, logDateEntry.wake) / 60)}h{" "}
-                    {calcDur(logDateEntry.sleep, logDateEntry.wake) % 60}m
+                    {Math.floor(
+                      calcDur(logDateEntry.sleep, logDateEntry.wake) / 60,
+                    )}
+                    h {calcDur(logDateEntry.sleep, logDateEntry.wake) % 60}m
                   </div>
                 </div>
               </div>
             ) : null}
           </div>
           <div className="toast-wrap">
-            <div className={`toast-pill ${toast ? "show" : ""}`}>{toast ?? ""}</div>
+            <div className={`toast-pill ${toast ? "show" : ""}`}>
+              {toast ?? ""}
+            </div>
           </div>
         </div>
 
@@ -493,7 +561,10 @@ export default function SleepTracker() {
               <div className="grade-hero">
                 <div
                   className="grade-bubble"
-                  style={{ background: "var(--surface2)", color: "var(--muted)" }}
+                  style={{
+                    background: "var(--surface2)",
+                    color: "var(--muted)",
+                  }}
                 >
                   —
                 </div>
@@ -539,9 +610,14 @@ export default function SleepTracker() {
 
                 return (
                   <div key={date} className="week-col">
-                    <div className="week-day-lbl">{DOW_SHORT[day.getDay()]}</div>
+                    <div className="week-day-lbl">
+                      {DOW_SHORT[day.getDay()]}
+                    </div>
                     <div className="heat-cell" style={{ background: style.bg }}>
-                      <div className="heat-cell-num" style={{ color: style.num }}>
+                      <div
+                        className="heat-cell-num"
+                        style={{ color: style.num }}
+                      >
                         {day.getDate()}
                       </div>
                       <div className="tt">{tip}</div>
@@ -613,7 +689,10 @@ export default function SleepTracker() {
                     className="cal-day"
                     style={{ background: "var(--heat-0)" }}
                   >
-                    <div className="cal-day-num" style={{ color: "var(--heat-0-num)" }}>
+                    <div
+                      className="cal-day-num"
+                      style={{ color: "var(--heat-0-num)" }}
+                    >
                       {cell.day}
                     </div>
                   </div>

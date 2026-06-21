@@ -15,7 +15,7 @@ import {
   Bookmark,
   Settings,
 } from "lucide-react";
-
+import BackHome from "@/components/BackHome";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -725,20 +725,18 @@ function SourcesTab() {
       return;
     }
     setError(null);
-    await supabase
-      .from("sources")
-      .insert({
-        url: newForm.url,
-        name: newForm.name,
-        type: newForm.type,
-        status: newForm.status,
-        auth_type: newForm.auth_type,
-        max_articles: newForm.max_articles,
-        added_by: "manual",
-        ...(newForm.url_exclude && { url_exclude: newForm.url_exclude }),
-        ...(newForm.url_pattern && { url_pattern: newForm.url_pattern }),
-        ...(newForm.rss_url && { rss_url: newForm.rss_url }),
-      });
+    await supabase.from("sources").insert({
+      url: newForm.url,
+      name: newForm.name,
+      type: newForm.type,
+      status: newForm.status,
+      auth_type: newForm.auth_type,
+      max_articles: newForm.max_articles,
+      added_by: "manual",
+      ...(newForm.url_exclude && { url_exclude: newForm.url_exclude }),
+      ...(newForm.url_pattern && { url_pattern: newForm.url_pattern }),
+      ...(newForm.rss_url && { rss_url: newForm.rss_url }),
+    });
     setAdding(false);
     setNewForm({
       url: "",
@@ -810,58 +808,62 @@ function SourcesTab() {
   return (
     <div>
       <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1rem",
-  }}
->
-  <p
-    style={{
-      fontFamily: "'IM Fell English', serif",
-      fontStyle: "italic",
-      fontSize: "0.88rem",
-      color: "#555",
-    }}
-  >
-    {sources.length} registered sources
-  </p>
-  <div style={{ display: "flex", gap: "0.5rem" }}>
-    <button
-      onClick={() => { setTesting((t) => !t); setTestResult(null); setTestError(null); }}
-      style={{
-        fontFamily: "'Playfair Display', serif",
-        fontSize: "0.75rem",
-        letterSpacing: "0.08em",
-        padding: "0.35rem 1rem",
-        border: "2px solid #1a1a1a",
-        background: testing ? "#1a1a1a" : "transparent",
-        color: testing ? "#f5f0e8" : "#1a1a1a",
-        cursor: "pointer",
-        textTransform: "uppercase",
-      }}
-    >
-      {testing ? "Cancel" : "Test a Source"}
-    </button>
-    <button
-      onClick={() => setAdding((a) => !a)}
-      style={{
-        fontFamily: "'Playfair Display', serif",
-        fontSize: "0.75rem",
-        letterSpacing: "0.08em",
-        padding: "0.35rem 1rem",
-        border: "2px solid #1a1a1a",
-        background: adding ? "#1a1a1a" : "transparent",
-        color: adding ? "#f5f0e8" : "#1a1a1a",
-        cursor: "pointer",
-        textTransform: "uppercase",
-      }}
-    >
-      {adding ? "Cancel" : "+ Add Source"}
-    </button>
-  </div>
-</div>
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1rem",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "'IM Fell English', serif",
+            fontStyle: "italic",
+            fontSize: "0.88rem",
+            color: "#555",
+          }}
+        >
+          {sources.length} registered sources
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={() => {
+              setTesting((t) => !t);
+              setTestResult(null);
+              setTestError(null);
+            }}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "0.75rem",
+              letterSpacing: "0.08em",
+              padding: "0.35rem 1rem",
+              border: "2px solid #1a1a1a",
+              background: testing ? "#1a1a1a" : "transparent",
+              color: testing ? "#f5f0e8" : "#1a1a1a",
+              cursor: "pointer",
+              textTransform: "uppercase",
+            }}
+          >
+            {testing ? "Cancel" : "Test a Source"}
+          </button>
+          <button
+            onClick={() => setAdding((a) => !a)}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "0.75rem",
+              letterSpacing: "0.08em",
+              padding: "0.35rem 1rem",
+              border: "2px solid #1a1a1a",
+              background: adding ? "#1a1a1a" : "transparent",
+              color: adding ? "#f5f0e8" : "#1a1a1a",
+              cursor: "pointer",
+              textTransform: "uppercase",
+            }}
+          >
+            {adding ? "Cancel" : "+ Add Source"}
+          </button>
+        </div>
+      </div>
 
       {testing && (
         <div
@@ -1609,7 +1611,13 @@ export default function ArticleFeedPage() {
         }}
       >
         {/* Masthead */}
-        <header style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+        <header
+          style={{
+            position: "relative",
+            textAlign: "center",
+            marginBottom: "1.5rem",
+          }}
+        >
           <p
             style={{
               fontFamily: "'IM Fell English', serif",
@@ -1646,30 +1654,54 @@ export default function ArticleFeedPage() {
               marginTop: "0.4rem",
             }}
           >
-            {/* Front Page button */}
-            <button
-              onClick={() => {
-                setTab("feed");
-                setCategory("all");
-                setPage(0);
-              }}
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontSize: "1rem",
-                fontStyle: "italic",
-                color:
-                  tab === "feed" && category === "all" ? "#0a0a0a" : "#555",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                letterSpacing: "0.05em",
-                textDecoration:
-                  tab === "feed" && category === "all" ? "underline" : "none",
-                padding: 0,
-              }}
+            {/* Left: Back + Front Page */}
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}
             >
-              Front Page
-            </button>
+<BackHome
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    padding: "0.25rem 0.6rem",
+    color: "#6b6b6b",
+    textDecoration: "none",
+    fontSize: "0.85rem",
+                  fontFamily: "'IM Fell English', serif",
+                                    fontStyle: "italic",
+    transition: "background 0.15s, color 0.15s",
+    border: "1px solid #aaa",
+    background: "transparent",
+  }}
+>
+  <i className="ti ti-arrow-left" />
+  Back
+</BackHome>
+
+              <button
+                onClick={() => {
+                  setTab("feed");
+                  setCategory("all");
+                  setPage(0);
+                }}
+                style={{
+                  fontFamily: "'IM Fell English', serif",
+                  fontSize: "1rem",
+                  fontStyle: "italic",
+                  color:
+                    tab === "feed" && category === "all" ? "#0a0a0a" : "#555",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  letterSpacing: "0.05em",
+                  textDecoration:
+                    tab === "feed" && category === "all" ? "underline" : "none",
+                  padding: 0,
+                }}
+              >
+                Front Page
+              </button>
+            </div>
 
             {/* Right controls: font size + clippings + sources */}
             <div
