@@ -114,6 +114,13 @@ function HistoryLegend() {
         />
         Miss
       </div>
+            <div className="legend-item">
+        <div
+          className="legend-swatch"
+          style={{ background: "var(--heat-0)" }}
+        />
+        No data
+      </div>
     </div>
   );
 }
