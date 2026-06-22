@@ -131,6 +131,7 @@ export default function SleepTracker() {
   const [calOffset, setCalOffset] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("log");
   const [logDate, setLogDate] = useState(() => defaultLogDate());
+  const logDateInvalid = logDate >= todayDate();
   const [inpSleep, setInpSleep] = useState("23:00");
   const [inpWake, setInpWake] = useState("07:00");
   const [setSleep, setSetSleep] = useState("23:00");
@@ -505,7 +506,12 @@ export default function SleepTracker() {
               type="button"
               className="btn-log"
               onClick={handleLogEntry}
-              disabled={busy}
+              disabled={busy || logDateInvalid}
+              title={
+                logDateInvalid
+                  ? "You can't log today or a future date"
+                  : undefined
+              }
             >
               Log sleep
             </button>
