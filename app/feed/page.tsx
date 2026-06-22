@@ -16,6 +16,35 @@ import {
   Settings,
 } from "lucide-react";
 import BackHome from "@/components/BackHome";
+import styles from "@/app/feed/styles/feed.module.css";
+
+import {
+  Playfair_Display,
+  IM_Fell_English,
+  UnifrakturMaguntia,
+} from "next/font/google";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair", // Exposes a CSS variable
+});
+
+const imFell = IM_Fell_English({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  variable: "--font-im-fell",
+});
+
+const unifraktur = UnifrakturMaguntia({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-unifraktur",
+});
+
+const classes = styles as Record<string, string>;
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -129,16 +158,8 @@ function DogEar({ saved, onClick }: { saved: boolean; onClick: () => void }) {
     <div
       onClick={onClick}
       title={saved ? "Remove clip" : "Clip article"}
-      style={{
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: "28px",
-        height: "28px",
-        cursor: "pointer",
-        opacity: saved ? 1 : 0.25,
-        transition: "opacity 0.2s",
-      }}
+      className={classes.dogEar}
+      style={{ opacity: saved ? 1 : 0.25 }} // Kept dynamic state mapping inline
       onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
       onMouseLeave={(e) =>
         (e.currentTarget.style.opacity = saved ? "1" : "0.25")
@@ -161,107 +182,26 @@ function FullTextModal({
   onClose: () => void;
 }) {
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        background: "rgba(10, 10, 10, 0.6)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-      }}
-    >
+    <div onClick={onClose} className={`${classes.modalOverlay}`}>
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#f5f0e8",
-          border: "2px solid #1a1a1a",
-          maxWidth: "720px",
-          width: "100%",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-        }}
+        className={classes.modalContainer}
       >
-        <div
-          style={{
-            padding: "1.25rem 1.5rem 1rem",
-            borderBottom: "1px solid #1a1a1a",
-            paddingRight: "3rem",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "'UnifrakturMaguntia', cursive",
-              fontSize: "0.8rem",
-              color: "#555",
-              display: "block",
-              marginBottom: "0.4rem",
-            }}
-          >
+        <div className={classes.modalHeader}>
+          <span className={classes.modalSource}>
             {article.sources?.name ?? "Unknown"}
           </span>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "1.4rem",
-              fontWeight: "700",
-              lineHeight: "1.3",
-              color: "#0a0a0a",
-            }}
-          >
-            {article.title ?? article.url}
-          </h2>
+          <h2 className={classes.modalTitle}>{article.title ?? article.url}</h2>
           {article.author && (
-            <p
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontSize: "0.8rem",
-                fontStyle: "italic",
-                color: "#555",
-                marginTop: "0.3rem",
-              }}
-            >
-              By {article.author}
-            </p>
+            <p className={classes.modalAuthor}>By {article.author}</p>
           )}
         </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: "0.75rem",
-            right: "0.75rem",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            color: "#1a1a1a",
-            padding: "0.2rem",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
+        <button onClick={onClose} className={classes.modalCloseBtn}>
           <X size={18} strokeWidth={2} />
         </button>
 
-        <div
-          className="article-content"
-          style={{
-            padding: "1.25rem 1.5rem",
-            overflowY: "auto",
-            flex: 1,
-            fontFamily: "'IM Fell English', serif",
-            fontSize: "0.95rem",
-            lineHeight: "1.75",
-            color: "#1a1a1a",
-          }}
-        >
+        <div className={classes.modalBody}>
           {article.raw_text ? (
             <ReactMarkdown>{stripJinaHeader(article.raw_text)}</ReactMarkdown>
           ) : (
@@ -269,43 +209,16 @@ function FullTextModal({
           )}
         </div>
 
-        <div
-          style={{
-            padding: "1rem 1.5rem",
-            borderTop: "1px solid #1a1a1a",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div className={classes.modalFooter}>
           <a
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.8rem",
-              fontStyle: "italic",
-              color: "#555",
-              textDecoration: "underline",
-            }}
+            className={classes.modalOriginalLink}
           >
             Read Original →
           </a>
-          <button
-            onClick={onClose}
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "0.75rem",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              padding: "0.4rem 1.2rem",
-              border: "2px solid #1a1a1a",
-              background: "#1a1a1a",
-              color: "#f5f0e8",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={onClose} className={classes.modalCloseFooterBtn}>
             Close
           </button>
         </div>
@@ -413,45 +326,19 @@ function ArticleCard({
         <FullTextModal article={article} onClose={() => setShowModal(false)} />
       )}
       <article
+        className={classes.card}
         style={{
-          position: "relative",
-          borderBottom: "1px solid #1a1a1a",
-          paddingBottom: "1.5rem",
-          marginBottom: "1.5rem",
-          paddingRight: "2rem",
           opacity: fading ? 0 : 1,
-          transition: "opacity 0.5s ease",
           fontSize: `${fontSize}rem`,
         }}
       >
         <DogEar saved={article.saved} onClick={handleSaveToggle} />
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: "0.3rem",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "'UnifrakturMaguntia', cursive",
-              fontSize: "0.85em",
-              color: "#555",
-              letterSpacing: "0.03em",
-            }}
-          >
+        <div className={classes.metaRow}>
+          <span className={classes.sourceName}>
             {article.sources?.name ?? "Unknown"}
           </span>
-          <span
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72em",
-              color: "#777",
-              fontStyle: "italic",
-            }}
-          >
+          <span className={classes.publishDate}>
             {formatDate(article.published_at ?? article.created_at)}
           </span>
         </div>
@@ -460,85 +347,29 @@ function ArticleCard({
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ textDecoration: "none", color: "inherit" }}
+          className={classes.titleLink}
         >
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "1.25em",
-              fontWeight: "700",
-              lineHeight: "1.3",
-              marginBottom: "0.25rem",
-              color: "#0a0a0a",
-              letterSpacing: "-0.01em",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.textDecoration = "underline")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.textDecoration = "none")
-            }
-          >
-            {article.title ?? article.url}
-          </h2>
+          <h2 className={classes.title}>{article.title ?? article.url}</h2>
         </a>
 
         {article.author && (
-          <p
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.78em",
-              color: "#555",
-              fontStyle: "italic",
-              marginBottom: "0.6rem",
-            }}
-          >
-            By {article.author}
-          </p>
+          <p className={classes.author}>By {article.author}</p>
         )}
 
-        <div
-          className="article-content"
-          style={{
-            fontFamily: "'IM Fell English', serif",
-            fontSize: "0.92em",
-            lineHeight: "1.65",
-            color: "#1a1a1a",
-            marginBottom: "0.75rem",
-          }}
-        >
+        <div className={`article-content ${classes.summaryText}`}>
           {content ? (
             <p>{content}</p>
           ) : (
-            <em style={{ color: "#888" }}>No summary available.</em>
+            <em className={classes.noSummary}>No summary available.</em>
           )}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className={classes.actionsRow}>
           {(["short", "medium"] as ViewMode[]).map((mode) => (
             <button
               key={mode}
               onClick={() => setView(mode)}
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontSize: "0.72em",
-                fontStyle: "italic",
-                padding: "0.2rem 0.6rem",
-                border: "1px solid #1a1a1a",
-                background: view === mode ? "#1a1a1a" : "transparent",
-                color: view === mode ? "#f5f0e8" : "#1a1a1a",
-                cursor: "pointer",
-                letterSpacing: "0.05em",
-                transition: "all 0.15s",
-              }}
+              className={`${classes.viewModeBtn} ${view === mode ? classes.viewModeBtnActive : ""}`}
             >
               {mode === "short" ? "Brief" : "Summary"}
             </button>
@@ -546,77 +377,30 @@ function ArticleCard({
 
           <button
             onClick={() => setShowModal(true)}
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72em",
-              fontStyle: "italic",
-              padding: "0.2rem 0.6rem",
-              border: "1px solid #1a1a1a",
-              background: "transparent",
-              color: "#1a1a1a",
-              cursor: "pointer",
-              letterSpacing: "0.05em",
-              transition: "all 0.15s",
-            }}
+            className={classes.fullTextBtn}
           >
             Full Text
           </button>
 
-          <div style={{ display: "flex", gap: "0.3rem", marginLeft: "0.5rem" }}>
+          <div className={classes.buttonGroup}>
             <button
               onClick={() => handleRating(1)}
               title="Recommend"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "26px",
-                height: "26px",
-                border: "1px solid #1a1a1a",
-                background: rating === 1 ? "#2d6a2d" : "transparent",
-                color: rating === 1 ? "#fff" : "#1a1a1a",
-                cursor: "pointer",
-                borderRadius: "2px",
-                transition: "all 0.15s",
-              }}
+              className={`${classes.actionIconBtn} ${rating === 1 ? classes.recommendActive : ""}`}
             >
               <Check size={13} strokeWidth={2.5} />
             </button>
             <button
               onClick={() => handleRating(-1)}
               title="Pass"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "26px",
-                height: "26px",
-                border: "1px solid #1a1a1a",
-                background: rating === -1 ? "#8b0000" : "transparent",
-                color: rating === -1 ? "#fff" : "#1a1a1a",
-                cursor: "pointer",
-                borderRadius: "2px",
-                transition: "all 0.15s",
-              }}
+              className={`${classes.actionIconBtn} ${rating === -1 ? classes.passActive : ""}`}
             >
               <X size={13} strokeWidth={2.5} />
             </button>
             <button
               onClick={handleDismiss}
               title="Dismiss"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "26px",
-                height: "26px",
-                border: "1px solid #aaa",
-                background: "transparent",
-                color: "#888",
-                cursor: "pointer",
-                borderRadius: "2px",
-                transition: "all 0.15s",
-              }}
+              className={classes.dismissBtn}
             >
               <Archive size={13} strokeWidth={2} />
             </button>
@@ -626,15 +410,7 @@ function ArticleCard({
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              marginLeft: "auto",
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72em",
-              fontStyle: "italic",
-              color: "#555",
-              textDecoration: "underline",
-              letterSpacing: "0.03em",
-            }}
+            className={classes.originalLink}
           >
             Read Original →
           </a>
@@ -777,88 +553,26 @@ function SourcesTab() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    fontFamily: "'IM Fell English', serif",
-    fontSize: "0.82rem",
-    padding: "0.25rem 0.4rem",
-    border: "1px solid #aaa",
-    background: "#faf8f2",
-    color: "#1a1a1a",
-    width: "100%",
-  };
-  const cellStyle: React.CSSProperties = {
-    fontFamily: "'IM Fell English', serif",
-    fontSize: "0.82rem",
-    padding: "0.5rem 0.75rem",
-    borderBottom: "1px solid #ddd",
-    color: "#1a1a1a",
-    verticalAlign: "middle",
-  };
-  const headStyle: React.CSSProperties = {
-    ...cellStyle,
-    fontFamily: "'Playfair Display', serif",
-    fontSize: "0.7rem",
-    letterSpacing: "0.1em",
-    textTransform: "uppercase" as const,
-    color: "#555",
-    borderBottom: "2px solid #1a1a1a",
-    background: "#f5f0e8",
-  };
-
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1rem",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "'IM Fell English', serif",
-            fontStyle: "italic",
-            fontSize: "0.88rem",
-            color: "#555",
-          }}
-        >
+    <>
+      <div className={classes.sourcesHeader}>
+        <p className={classes.sourcesCount}>
           {sources.length} registered sources
         </p>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className={classes.sourcesBtnGroup}>
           <button
             onClick={() => {
               setTesting((t) => !t);
               setTestResult(null);
               setTestError(null);
             }}
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "0.75rem",
-              letterSpacing: "0.08em",
-              padding: "0.35rem 1rem",
-              border: "2px solid #1a1a1a",
-              background: testing ? "#1a1a1a" : "transparent",
-              color: testing ? "#f5f0e8" : "#1a1a1a",
-              cursor: "pointer",
-              textTransform: "uppercase",
-            }}
+            className={`${classes.sourcesHeaderBtn} ${testing ? classes.sourcesHeaderBtnActive : ""}`}
           >
             {testing ? "Cancel" : "Test a Source"}
           </button>
           <button
             onClick={() => setAdding((a) => !a)}
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "0.75rem",
-              letterSpacing: "0.08em",
-              padding: "0.35rem 1rem",
-              border: "2px solid #1a1a1a",
-              background: adding ? "#1a1a1a" : "transparent",
-              color: adding ? "#f5f0e8" : "#1a1a1a",
-              cursor: "pointer",
-              textTransform: "uppercase",
-            }}
+            className={`${classes.sourcesHeaderBtn} ${adding ? classes.sourcesHeaderBtnActive : ""}`}
           >
             {adding ? "Cancel" : "+ Add Source"}
           </button>
@@ -866,47 +580,13 @@ function SourcesTab() {
       </div>
 
       {testing && (
-        <div
-          style={{
-            padding: "1rem",
-            border: "1px solid #1a1a1a",
-            background: "#faf8f2",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <h3
-            style={{
-              fontFamily: "'UnifrakturMaguntia', cursive",
-              fontSize: "1.1rem",
-              marginBottom: "1rem",
-              color: "#1a1a1a",
-            }}
-          >
-            Test a Source
-          </h3>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-              marginBottom: "0.75rem",
-            }}
-          >
+        <div className={classes.panelContainer}>
+          <h3 className={classes.panelTitle}>Test a Source</h3>
+          <div className={classes.panelGridLayout}>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                URL *
-              </label>
+              <label className={classes.fieldLabel}>URL *</label>
               <input
-                style={inputStyle}
+                className={classes.tableInput}
                 placeholder="https://..."
                 value={testForm.url}
                 onChange={(e) =>
@@ -915,20 +595,9 @@ function SourcesTab() {
               />
             </div>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Type
-              </label>
+              <label className={classes.fieldLabel}>Type</label>
               <select
-                style={inputStyle}
+                className={classes.tableInput}
                 value={testForm.type}
                 onChange={(e) =>
                   setTestForm((f) => ({
@@ -942,20 +611,11 @@ function SourcesTab() {
               </select>
             </div>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
+              <label className={classes.fieldLabel}>
                 URL Exclude (optional)
               </label>
               <input
-                style={inputStyle}
+                className={classes.tableInput}
                 placeholder="/podcasts"
                 value={testForm.url_exclude}
                 onChange={(e) =>
@@ -964,20 +624,11 @@ function SourcesTab() {
               />
             </div>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
+              <label className={classes.fieldLabel}>
                 URL Pattern (optional)
               </label>
               <input
-                style={inputStyle}
+                className={classes.tableInput}
                 placeholder="/articles/"
                 value={testForm.url_pattern}
                 onChange={(e) =>
@@ -990,84 +641,29 @@ function SourcesTab() {
           <button
             onClick={handleTest}
             disabled={testLoading}
+            className={classes.panelSubmitBtn}
             style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "0.75rem",
-              letterSpacing: "0.08em",
-              padding: "0.35rem 1rem",
-              border: "2px solid #1a1a1a",
-              background: "#1a1a1a",
-              color: "#f5f0e8",
               cursor: testLoading ? "not-allowed" : "pointer",
-              textTransform: "uppercase",
               opacity: testLoading ? 0.6 : 1,
             }}
           >
             {testLoading ? "Testing..." : "Run Test"}
           </button>
 
-          {testError && (
-            <p
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                color: "#8b0000",
-                fontSize: "0.82rem",
-                marginTop: "0.75rem",
-              }}
-            >
-              {testError}
-            </p>
-          )}
+          {testError && <p className={classes.panelErrorText}>{testError}</p>}
 
           {testResult && (
-            <div
-              style={{
-                marginTop: "1rem",
-                borderTop: "1px solid #1a1a1a",
-                paddingTop: "1rem",
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "1rem",
-                  fontWeight: "700",
-                  marginBottom: "0.3rem",
-                  color: "#0a0a0a",
-                }}
-              >
-                {testResult.title}
-              </p>
+            <div className={classes.testResultBox}>
+              <p className={classes.testResultTitle}>{testResult.title}</p>
               <a
                 href={testResult.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.75rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  textDecoration: "underline",
-                  display: "block",
-                  marginBottom: "0.75rem",
-                }}
+                className={classes.testResultUrlLink}
               >
                 {testResult.url}
               </a>
-              <div
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.85rem",
-                  lineHeight: "1.6",
-                  color: "#1a1a1a",
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                  whiteSpace: "pre-wrap",
-                  background: "#f5f0e8",
-                  padding: "0.75rem",
-                  border: "1px solid #ddd",
-                }}
-              >
+              <div className={classes.testResultPreviewArea}>
                 {testResult.preview}
               </div>
             </div>
@@ -1076,22 +672,8 @@ function SourcesTab() {
       )}
 
       {adding && (
-        <div
-          style={{
-            padding: "1rem",
-            border: "1px solid #1a1a1a",
-            background: "#faf8f2",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "0.75rem",
-              marginBottom: "0.75rem",
-            }}
-          >
+        <div className={classes.panelContainer}>
+          <div className={classes.panelGridLayoutThreeCol}>
             {[
               { label: "URL *", key: "url", placeholder: "https://..." },
               { label: "Name *", key: "name", placeholder: "The Ringer" },
@@ -1108,20 +690,9 @@ function SourcesTab() {
               { label: "RSS URL", key: "rss_url", placeholder: "https://..." },
             ].map(({ label, key, placeholder }) => (
               <div key={key}>
-                <label
-                  style={{
-                    fontFamily: "'IM Fell English', serif",
-                    fontSize: "0.72rem",
-                    fontStyle: "italic",
-                    color: "#555",
-                    display: "block",
-                    marginBottom: "0.2rem",
-                  }}
-                >
-                  {label}
-                </label>
+                <label className={classes.fieldLabel}>{label}</label>
                 <input
-                  style={inputStyle}
+                  className={classes.tableInput}
                   placeholder={placeholder}
                   value={
                     ((newForm as Record<string, unknown>)[key] as string) ?? ""
@@ -1133,20 +704,9 @@ function SourcesTab() {
               </div>
             ))}
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Type
-              </label>
+              <label className={classes.fieldLabel}>Type</label>
               <select
-                style={inputStyle}
+                className={classes.tableInput}
                 value={newForm.type}
                 onChange={(e) =>
                   setNewForm((f) => ({
@@ -1160,20 +720,9 @@ function SourcesTab() {
               </select>
             </div>
             <div>
-              <label
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.72rem",
-                  fontStyle: "italic",
-                  color: "#555",
-                  display: "block",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Max Articles
-              </label>
+              <label className={classes.fieldLabel}>Max Articles</label>
               <input
-                style={inputStyle}
+                className={classes.tableInput}
                 type="number"
                 value={newForm.max_articles}
                 onChange={(e) =>
@@ -1185,32 +734,8 @@ function SourcesTab() {
               />
             </div>
           </div>
-          {error && (
-            <p
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                color: "#8b0000",
-                fontSize: "0.8rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              {error}
-            </p>
-          )}
-          <button
-            onClick={handleAdd}
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "0.75rem",
-              letterSpacing: "0.08em",
-              padding: "0.35rem 1rem",
-              border: "2px solid #1a1a1a",
-              background: "#1a1a1a",
-              color: "#f5f0e8",
-              cursor: "pointer",
-              textTransform: "uppercase",
-            }}
-          >
+          {error && <p className={classes.panelErrorTextNoMargin}>{error}</p>}
+          <button onClick={handleAdd} className={classes.panelSubmitBtn}>
             Submit
           </button>
         </div>
@@ -1218,12 +743,8 @@ function SourcesTab() {
 
       {loading ? (
         <p
-          style={{
-            fontFamily: "'IM Fell English', serif",
-            fontStyle: "italic",
-            color: "#777",
-            padding: "2rem 0",
-          }}
+          className={classes.statusMessageText}
+          style={{ padding: "2rem 0" }}
         >
           Loading sources...
         </p>
@@ -1241,7 +762,10 @@ function SourcesTab() {
                   "Score",
                   "Actions",
                 ].map((h) => (
-                  <th key={h} style={headStyle}>
+                  <th
+                    key={h}
+                    className={`${classes.tableCell} ${classes.tableHeader}`}
+                  >
                     {h}
                   </th>
                 ))}
@@ -1252,27 +776,27 @@ function SourcesTab() {
                 <tr key={source.id}>
                   {editingId === source.id ? (
                     <>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         <input
-                          style={inputStyle}
+                          className={classes.tableInput}
                           value={editForm.name ?? ""}
                           onChange={(e) =>
                             setEditForm((f) => ({ ...f, name: e.target.value }))
                           }
                         />
                       </td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         <input
-                          style={inputStyle}
+                          className={classes.tableInput}
                           value={editForm.url ?? ""}
                           onChange={(e) =>
                             setEditForm((f) => ({ ...f, url: e.target.value }))
                           }
                         />
                       </td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         <select
-                          style={inputStyle}
+                          className={classes.tableInput}
                           value={editForm.type ?? "scrape"}
                           onChange={(e) =>
                             setEditForm((f) => ({
@@ -1285,9 +809,9 @@ function SourcesTab() {
                           <option value="rss">RSS</option>
                         </select>
                       </td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         <select
-                          style={inputStyle}
+                          className={classes.tableInput}
                           value={editForm.status ?? "active"}
                           onChange={(e) =>
                             setEditForm((f) => ({
@@ -1300,9 +824,9 @@ function SourcesTab() {
                           <option value="paused">Paused</option>
                         </select>
                       </td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         <input
-                          style={{ ...inputStyle, width: "50px" }}
+                          className={`${classes.tableInput} ${classes.tableInputSmallWidth}`}
                           type="number"
                           value={editForm.max_articles ?? 10}
                           onChange={(e) =>
@@ -1313,35 +837,20 @@ function SourcesTab() {
                           }
                         />
                       </td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
                         {source.engagement_score?.toFixed(2)}
                       </td>
-                      <td style={cellStyle}>
-                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                      <td className={classes.tableCell}>
+                        <div className={classes.tableActionBtnGroup}>
                           <button
                             onClick={() => handleSaveEdit(source.id)}
-                            style={{
-                              fontFamily: "'IM Fell English', serif",
-                              fontSize: "0.75rem",
-                              padding: "0.2rem 0.5rem",
-                              border: "1px solid #2d6a2d",
-                              background: "#2d6a2d",
-                              color: "#fff",
-                              cursor: "pointer",
-                            }}
+                            className={classes.saveRowBtn}
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            style={{
-                              fontFamily: "'IM Fell English', serif",
-                              fontSize: "0.75rem",
-                              padding: "0.2rem 0.5rem",
-                              border: "1px solid #aaa",
-                              background: "transparent",
-                              cursor: "pointer",
-                            }}
+                            className={classes.cancelRowBtn}
                           >
                             Cancel
                           </button>
@@ -1350,77 +859,51 @@ function SourcesTab() {
                     </>
                   ) : (
                     <>
-                      <td style={cellStyle}>{source.name}</td>
+                      <td className={classes.tableCell}>{source.name}</td>
                       <td
-                        style={{
-                          ...cellStyle,
-                          maxWidth: "200px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
+                        className={`${classes.tableCell} ${classes.tableCellEllipsis}`}
                       >
                         <a
                           href={source.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: "#555", textDecoration: "underline" }}
+                          className={classes.tableCellUrl}
                         >
                           {source.url}
                         </a>
                       </td>
-                      <td style={cellStyle}>{source.type}</td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>{source.type}</td>
+                      <td className={classes.tableCell}>
                         <span
-                          style={{
-                            padding: "0.1rem 0.4rem",
-                            border: "1px solid",
-                            borderColor:
-                              source.status === "active" ? "#2d6a2d" : "#888",
-                            color:
-                              source.status === "active" ? "#2d6a2d" : "#888",
-                            fontSize: "0.7rem",
-                            fontFamily: "'IM Fell English', serif",
-                            fontStyle: "italic",
-                          }}
+                          className={`${classes.statusBadge} ${
+                            source.status === "active"
+                              ? classes.statusActive
+                              : classes.statusPaused
+                          }`}
                         >
                           {source.status}
                         </span>
                       </td>
-                      <td style={cellStyle}>{source.max_articles}</td>
-                      <td style={cellStyle}>
+                      <td className={classes.tableCell}>
+                        {source.max_articles}
+                      </td>
+                      <td className={classes.tableCell}>
                         {source.engagement_score?.toFixed(2)}
                       </td>
-                      <td style={cellStyle}>
-                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                      <td className={classes.tableCell}>
+                        <div className={classes.tableActionBtnGroup}>
                           <button
                             onClick={() => {
                               setEditingId(source.id);
                               setEditForm(source);
                             }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              background: "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#555",
-                              padding: "0.2rem",
-                            }}
+                            className={`${classes.iconRowBtn} ${classes.editIconColor}`}
                           >
                             <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => handleDelete(source.id)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              background: "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#8b0000",
-                              padding: "0.2rem",
-                            }}
+                            className={`${classes.iconRowBtn} ${classes.deleteIconColor}`}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1434,10 +917,9 @@ function SourcesTab() {
           </table>
         </div>
       )}
-    </div>
+    </>
   );
 }
-
 // ── Main Page ────────────────────────────────────────────────
 
 export default function ArticleFeedPage() {
@@ -1450,6 +932,12 @@ export default function ArticleFeedPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const PAGE_SIZE = 20;
+
+// Set body background to match page aesthetic
+useEffect(() => {
+  document.body.style.backgroundColor = '#f5f0e8';
+  return () => { document.body.style.backgroundColor = ''; };
+}, []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -1514,169 +1002,40 @@ export default function ArticleFeedPage() {
   const currentCategoryLabel =
     CATEGORIES.find((c) => c.key === category)?.label ?? "Front Page";
 
-  // Small utility button style (font size, clippings, sources)
-  const utilBtnStyle: React.CSSProperties = {
-    fontFamily: "'IM Fell English', serif",
-    fontSize: "0.72rem",
-    fontStyle: "italic",
-    border: "1px solid #aaa",
-    background: "transparent",
-    color: "#555",
-    cursor: "pointer",
-    padding: "0.2rem 0.5rem",
-    letterSpacing: "0.03em",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.3rem",
-    whiteSpace: "nowrap" as const,
-  };
-
-  // Category tab style (for the inline row)
+  // Category tab dynamic style mappings
   const catTabStyle = (c: Category): React.CSSProperties => ({
-    fontFamily: "'Playfair Display', serif",
-    fontSize: "0.68rem",
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    padding: "0.35rem 0.75rem",
-    border: "1px solid #1a1a1a",
     borderBottom:
       tab === "feed" && category === c ? "none" : "1px solid #1a1a1a",
     background: tab === "feed" && category === c ? "#f5f0e8" : "#e8e3d8",
-    color: "#1a1a1a",
-    cursor: "pointer",
     marginBottom: tab === "feed" && category === c ? "-1px" : "0",
     position: "relative",
     zIndex: tab === "feed" && category === c ? 1 : 0,
-    whiteSpace: "nowrap" as const,
   });
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IM+Fell+English:ital@0;1&family=UnifrakturMaguntia&display=swap');
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-          background: #f5f0e8;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f5f0e8; }
-        ::-webkit-scrollbar-thumb { background: #1a1a1a; }
-
-        .masthead-rule { border: none; border-top: 4px double #1a1a1a; margin: 0.5rem 0; }
-
-        .feed-columns { column-count: 2; column-gap: 2.5rem; column-rule: 1px solid #1a1a1a; }
-        @media (max-width: 700px) { .feed-columns { column-count: 1; } }
-        .feed-columns article { break-inside: avoid; }
-
-        .article-content p { margin-bottom: 0.9rem; text-indent: 1.5em; }
-        .article-content p:first-child { text-indent: 1.5em; }
-        .article-content h1, .article-content h2, .article-content h3 { font-family: 'Playfair Display', serif; margin: 1rem 0 0.4rem; }
-        .article-content ul, .article-content ol { margin: 0.5rem 0 0.9rem 1.5rem; }
-        .article-content li { margin-bottom: 0.3rem; }
-
-        /* Category tab row — hide overflow tabs on narrow screens */
-        .cat-tab-row {
-          display: flex;
-          align-items: flex-end;
-          overflow: hidden;
-          flex: 1;
-          min-width: 0;
-        }
-
-        /* Menu button — hidden on wide screens */
-        .cat-menu-btn { display: none; }
-
-        @media (max-width: 700px) {
-          .cat-tab-row .cat-tab { display: none; }
-          .cat-menu-btn { display: flex !important; }
-        }
-
-        /* On wide screens hide menu button, show all tabs */
-        @media (min-width: 701px) {
-          .cat-tab { display: inline-flex !important; }
-          .cat-menu-btn { display: none !important; }
-        }
-      `}</style>
-
       <div
-        style={{
-          maxWidth: "960px",
-          margin: "0 auto",
-          padding: "2rem 1.5rem",
-          minHeight: "100vh",
-        }}
+        className={`${classes.feedPageContainer} ${playfair.variable} ${imFell.variable} ${unifraktur.variable}`}
       >
         {/* Masthead */}
-        <header
-          style={{
-            position: "relative",
-            textAlign: "center",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72rem",
-              letterSpacing: "0.12em",
-              color: "#555",
-              textTransform: "uppercase",
-              marginBottom: "0.5rem",
-            }}
-          >
+        <header className={classes.masthead}>
+          <p className={`${classes.mastheadSubDate} ${imFell.className}`}>
             {getTodayHeader()}
           </p>
-          <hr className="masthead-rule" />
-          <h1
-            style={{
-              fontFamily: "'UnifrakturMaguntia', cursive",
-              fontSize: "clamp(2.8rem, 8vw, 5rem)",
-              color: "#0a0a0a",
-              lineHeight: "1",
-              letterSpacing: "-0.01em",
-              margin: "0.4rem 0",
-            }}
-          >
+          <hr className={classes.mastheadRule} />
+          <h1 className={`${classes.mastTitle} ${unifraktur.className}`}>
             Duncan's Daily Digest
           </h1>
-          <hr className="masthead-rule" />
+          <hr className={classes.mastheadRule} />
 
           {/* Sub-masthead: Front Page button + utility controls */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "0.4rem",
-            }}
-          >
+          <div className={classes.subMastheadRow}>
             {/* Left: Back + Front Page */}
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}
-            >
-<BackHome
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.3rem",
-    padding: "0.25rem 0.6rem",
-    color: "#6b6b6b",
-    textDecoration: "none",
-    fontSize: "0.85rem",
-                  fontFamily: "'IM Fell English', serif",
-                                    fontStyle: "italic",
-    transition: "background 0.15s, color 0.15s",
-    border: "1px solid #aaa",
-    background: "transparent",
-  }}
->
-  <i className="ti ti-arrow-left" />
-  Back
-</BackHome>
+            <div className={classes.subMastheadLeft}>
+              <BackHome className={classes.backBtn}>
+                <i className="ti ti-arrow-left" />
+                Back
+              </BackHome>
 
               <button
                 onClick={() => {
@@ -1684,56 +1043,27 @@ export default function ArticleFeedPage() {
                   setCategory("all");
                   setPage(0);
                 }}
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "1rem",
-                  fontStyle: "italic",
-                  color:
-                    tab === "feed" && category === "all" ? "#0a0a0a" : "#555",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  letterSpacing: "0.05em",
-                  textDecoration:
-                    tab === "feed" && category === "all" ? "underline" : "none",
-                  padding: 0,
-                }}
+                className={`${classes.frontPageBtn} ${
+                  tab === "feed" && category === "all"
+                    ? classes.frontPageActive
+                    : classes.frontPageInactive
+                }`}
               >
                 Front Page
               </button>
             </div>
 
             {/* Right controls: font size + clippings + sources */}
-            <div
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
+            <div className={classes.subMastheadRightControls}>
               <button
                 onClick={() => setFontSize((f) => Math.max(0.85, f - 0.05))}
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "0.8rem",
-                  border: "1px solid #aaa",
-                  background: "transparent",
-                  width: "22px",
-                  height: "22px",
-                  cursor: "pointer",
-                  color: "#555",
-                }}
+                className={`${classes.fontSizeBtn} ${classes.fontSizeBtnSmall}`}
               >
                 A
               </button>
               <button
                 onClick={() => setFontSize((f) => Math.min(1.25, f + 0.05))}
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontSize: "1rem",
-                  border: "1px solid #aaa",
-                  background: "transparent",
-                  width: "22px",
-                  height: "22px",
-                  cursor: "pointer",
-                  color: "#555",
-                }}
+                className={`${classes.fontSizeBtn} ${classes.fontSizeBtnLarge}`}
               >
                 A
               </button>
@@ -1743,11 +1073,11 @@ export default function ArticleFeedPage() {
                   setTab("clipped");
                   setPage(0);
                 }}
-                style={{
-                  ...utilBtnStyle,
-                  color: tab === "clipped" ? "#0a0a0a" : "#555",
-                  borderColor: tab === "clipped" ? "#1a1a1a" : "#aaa",
-                }}
+                className={`${classes.utilBtn} ${
+                  tab === "clipped"
+                    ? classes.utilBtnActive
+                    : classes.utilBtnInactive
+                }`}
               >
                 <Bookmark size={12} />
                 Clippings{" "}
@@ -1759,11 +1089,11 @@ export default function ArticleFeedPage() {
                   setTab("sources");
                   setPage(0);
                 }}
-                style={{
-                  ...utilBtnStyle,
-                  color: tab === "sources" ? "#0a0a0a" : "#555",
-                  borderColor: tab === "sources" ? "#1a1a1a" : "#aaa",
-                }}
+                className={`${classes.utilBtn} ${
+                  tab === "sources"
+                    ? classes.utilBtnActive
+                    : classes.utilBtnInactive
+                }`}
               >
                 <Settings size={12} />
                 Sources
@@ -1774,45 +1104,22 @@ export default function ArticleFeedPage() {
 
         {/* Category tab row + hamburger */}
         {(tab === "feed" || tab === "clipped" || tab === "sources") && (
-          <div
-            style={{
-              position: "relative",
-              borderBottom: "1px solid #1a1a1a",
-              display: "flex",
-              alignItems: "flex-end",
-            }}
-            ref={menuRef}
-          >
+          <div className={classes.navigationTabBar} ref={menuRef}>
             {/* Hamburger — shown on narrow via CSS */}
             <button
-              className="cat-menu-btn"
+              className={classes.catMenuBtn}
               onClick={() => setMenuOpen((o) => !o)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "0.68rem",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                padding: "0.35rem 0.75rem",
-                border: "1px solid #1a1a1a",
-                borderBottom: "none",
-                background: "#e8e3d8",
-                color: "#1a1a1a",
-                cursor: "pointer",
-              }}
             >
               <Menu size={14} />
               {currentCategoryLabel}
             </button>
 
             {/* Inline tabs — hidden on narrow via CSS */}
-            <div className="cat-tab-row">
+            <div className={classes.catTabRow}>
               {CATEGORIES.map(({ key, label }) => (
                 <button
                   key={key}
-                  className="cat-tab"
+                  className={classes.catTab}
                   onClick={() => {
                     setTab("feed");
                     setCategory(key);
@@ -1827,19 +1134,7 @@ export default function ArticleFeedPage() {
 
             {/* Dropdown menu */}
             {menuOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  zIndex: 100,
-                  background: "#f5f0e8",
-                  border: "1px solid #1a1a1a",
-                  borderTop: "none",
-                  minWidth: "160px",
-                  boxShadow: "2px 2px 8px rgba(0,0,0,0.1)",
-                }}
-              >
+              <div className={classes.hamburgerDropdown}>
                 {CATEGORIES.map(({ key, label }) => (
                   <button
                     key={key}
@@ -1849,24 +1144,11 @@ export default function ArticleFeedPage() {
                       setPage(0);
                       setMenuOpen(false);
                     }}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      fontFamily: "'Playfair Display', serif",
-                      fontSize: "0.68rem",
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      padding: "0.5rem 1rem",
-                      border: "none",
-                      borderBottom: "1px solid #e0dbd0",
-                      background:
-                        category === key && tab === "feed"
-                          ? "#e8e3d8"
-                          : "transparent",
-                      color: "#1a1a1a",
-                      cursor: "pointer",
-                    }}
+                    className={`${classes.dropdownItemBtn} ${
+                      category === key && tab === "feed"
+                        ? classes.dropdownItemActive
+                        : ""
+                    }`}
                   >
                     {label}
                   </button>
@@ -1877,34 +1159,16 @@ export default function ArticleFeedPage() {
         )}
 
         {/* Tab Content */}
-        <div style={{ paddingTop: "1.5rem" }}>
+        <div className={classes.contentTabWrapper}>
           {tab === "feed" &&
             (loading ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
-                Setting type...
-              </p>
+              <p className={classes.statusMessageText}>Setting type...</p>
             ) : filteredArticles.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
+              <p className={classes.statusMessageText}>
                 No articles in this section. The presses are idle.
               </p>
             ) : (
-              <div className="feed-columns">
+              <div className={classes.feedColumns}>
                 {pagedArticles.map((article) => (
                   <ArticleCard
                     key={article.id}
@@ -1919,19 +1183,11 @@ export default function ArticleFeedPage() {
 
           {tab === "clipped" &&
             (clippedArticles.length === 0 ? (
-              <p
-                style={{
-                  fontFamily: "'IM Fell English', serif",
-                  fontStyle: "italic",
-                  color: "#777",
-                  textAlign: "center",
-                  padding: "3rem 0",
-                }}
-              >
+              <p className={classes.statusMessageText}>
                 No clippings yet. Fold the corner of an article to save it.
               </p>
             ) : (
-              <div className="feed-columns">
+              <div className={classes.feedColumns}>
                 {clippedArticles.map((article) => (
                   <ArticleCard
                     key={article.id}
@@ -1949,60 +1205,29 @@ export default function ArticleFeedPage() {
 
         {/* Pagination */}
         {tab === "feed" && totalPages > 1 && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "1.5rem",
-              marginTop: "2rem",
-              paddingTop: "1rem",
-              borderTop: "1px solid #1a1a1a",
-            }}
-          >
+          <div className={classes.paginationRow}>
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "0.75rem",
-                padding: "0.4rem 1rem",
-                border: "1px solid",
-                background: "transparent",
-                color: page === 0 ? "#aaa" : "#1a1a1a",
-                borderColor: page === 0 ? "#aaa" : "#1a1a1a",
-                cursor: page === 0 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
+              className={`${classes.paginationBtn} ${
+                page === 0
+                  ? classes.paginationBtnDisabled
+                  : classes.paginationBtnActive
+              }`}
             >
               <ChevronLeft size={14} />
             </button>
-            <span
-              style={{
-                fontFamily: "'IM Fell English', serif",
-                fontStyle: "italic",
-                fontSize: "0.82rem",
-                color: "#555",
-              }}
-            >
+            <span className={classes.paginationLabel}>
               Page {page + 1} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "0.75rem",
-                padding: "0.4rem 1rem",
-                border: "1px solid",
-                background: "transparent",
-                color: page === totalPages - 1 ? "#aaa" : "#1a1a1a",
-                borderColor: page === totalPages - 1 ? "#aaa" : "#1a1a1a",
-                cursor: page === totalPages - 1 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
+              className={`${classes.paginationBtn} ${
+                page === totalPages - 1
+                  ? classes.paginationBtnDisabled
+                  : classes.paginationBtnActive
+              }`}
             >
               <ChevronRight size={14} />
             </button>
@@ -2010,22 +1235,8 @@ export default function ArticleFeedPage() {
         )}
 
         {/* Footer */}
-        <footer
-          style={{
-            marginTop: "3rem",
-            paddingTop: "1rem",
-            borderTop: "4px double #1a1a1a",
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "'IM Fell English', serif",
-              fontSize: "0.72rem",
-              fontStyle: "italic",
-              color: "#777",
-            }}
-          >
+        <footer className={classes.pageFooter}>
+          <p className={classes.pageFooterMutedText}>
             Printed daily by the automated press. Est. 2026.
           </p>
         </footer>
