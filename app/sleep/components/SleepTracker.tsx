@@ -10,10 +10,11 @@ import {
 import {
   clearSleepLogs,
   loadSleepData,
+  saveComment,
   saveSettings as persistSettings,
   upsertSleepLog,
 } from "@/app/sleep/lib/db";
-import type { SleepConfig, SleepEntry } from "@/app/sleep/lib/types";
+import type { SleepConfig, SleepEntry, CommentsMap } from "@/app/sleep/lib/types";
 import { loadUiState, saveUiState } from "@/app/sleep/lib/ui-state";
 import {
   avgDur,
@@ -45,38 +46,23 @@ function Legend() {
   return (
     <div className="legend-row">
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-on)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-on)" }} />
         On target
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-close)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-close)" }} />
         Close
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-off)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-off)" }} />
         Off
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-miss)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-miss)" }} />
         Miss
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-0)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-0)" }} />
         No data
       </div>
     </div>
@@ -87,38 +73,23 @@ function HistoryLegend() {
   return (
     <div className="legend-row">
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-on)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-on)" }} />
         On target
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-close)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-close)" }} />
         Close
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-off)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-off)" }} />
         Off
       </div>
       <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-miss)" }}
-        />
+        <div className="legend-swatch" style={{ background: "var(--heat-miss)" }} />
         Miss
       </div>
-            <div className="legend-item">
-        <div
-          className="legend-swatch"
-          style={{ background: "var(--heat-0)" }}
-        />
+      <div className="legend-item">
+        <div className="legend-swatch" style={{ background: "var(--heat-0)" }} />
         No data
       </div>
     </div>
@@ -127,6 +98,7 @@ function HistoryLegend() {
 
 export default function SleepTracker() {
   const [entries, setEntries] = useState<SleepEntry[]>([]);
+  const [comments, setComments] = useState<CommentsMap>({});
   const [cfg, setCfg] = useState<SleepConfig>({
     targetSleep: "23:00",
     targetWake: "07:00",
@@ -150,6 +122,11 @@ export default function SleepTracker() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal state
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [modalComment, setModalComment] = useState("");
+  const [commentBusy, setCommentBusy] = useState(false);
+
   const headerDate = useMemo(
     () =>
       new Date().toLocaleDateString("en-US", {
@@ -170,6 +147,7 @@ export default function SleepTracker() {
     setEntries(data.entries);
     setCfg(data.config);
     setSettingsId(data.settingsId);
+    setComments(data.comments);
     setSetSleep(data.config.targetSleep);
     setSetWake(data.config.targetWake);
     setSetGood(String(data.config.threshGood));
@@ -214,13 +192,9 @@ export default function SleepTracker() {
   }, [logDate]);
 
   const sleepPreview =
-    inpSleep && inpWake
-      ? offsetCard(calcOffset(inpSleep, cfg.targetSleep))
-      : null;
+    inpSleep && inpWake ? offsetCard(calcOffset(inpSleep, cfg.targetSleep)) : null;
   const wakePreview =
-    inpSleep && inpWake
-      ? offsetCard(calcOffset(inpWake, cfg.targetWake))
-      : null;
+    inpSleep && inpWake ? offsetCard(calcOffset(inpWake, cfg.targetWake)) : null;
   const durPreview = inpSleep && inpWake ? calcDur(inpSleep, inpWake) : null;
 
   const pct = score7(entries, cfg);
@@ -243,11 +217,7 @@ export default function SleepTracker() {
 
   const calendar = useMemo(() => {
     const now = new Date();
-    const displayDate = new Date(
-      now.getFullYear(),
-      now.getMonth() - calOffset,
-      1,
-    );
+    const displayDate = new Date(now.getFullYear(), now.getMonth() - calOffset, 1);
     const year = displayDate.getFullYear();
     const month = displayDate.getMonth();
     const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -277,6 +247,35 @@ export default function SleepTracker() {
       cells,
     };
   }, [calOffset, entries]);
+
+  // Modal handlers
+  function openModal(date: string, entry?: SleepEntry) {
+    setSelectedDate(date);
+    setModalComment(comments[date] ?? "");
+  }
+
+  async function handleSaveComment() {
+    if (!selectedDate) return;
+    setCommentBusy(true);
+    try {
+      await saveComment(selectedDate, modalComment);
+      setComments((current) => {
+        const next = { ...current };
+        if (modalComment.trim()) {
+          next[selectedDate] = modalComment.trim();
+        } else {
+          delete next[selectedDate];
+        }
+        return next;
+      });
+      showToast("Note saved!");
+      setSelectedDate(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save note");
+    } finally {
+      setCommentBusy(false);
+    }
+  }
 
   async function handleLogEntry() {
     if (!inpSleep || !inpWake) return;
@@ -425,6 +424,7 @@ export default function SleepTracker() {
           ))}
         </div>
 
+        {/* LOG TAB */}
         <div className={`page ${activeTab === "log" ? "on" : ""}`}>
           <div className="card">
             <div className="card-header">
@@ -459,13 +459,8 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {sleepPreview ? (
                     <>
-                      <i
-                        className={`ti ${sleepPreview.icon}`}
-                        style={{ color: sleepPreview.color }}
-                      />
-                      <span style={{ color: sleepPreview.color }}>
-                        {sleepPreview.txt}
-                      </span>
+                      <i className={`ti ${sleepPreview.icon}`} style={{ color: sleepPreview.color }} />
+                      <span style={{ color: sleepPreview.color }}>{sleepPreview.txt}</span>
                     </>
                   ) : (
                     <span style={{ color: "var(--muted)" }}>—</span>
@@ -477,13 +472,8 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {wakePreview ? (
                     <>
-                      <i
-                        className={`ti ${wakePreview.icon}`}
-                        style={{ color: wakePreview.color }}
-                      />
-                      <span style={{ color: wakePreview.color }}>
-                        {wakePreview.txt}
-                      </span>
+                      <i className={`ti ${wakePreview.icon}`} style={{ color: wakePreview.color }} />
+                      <span style={{ color: wakePreview.color }}>{wakePreview.txt}</span>
                     </>
                   ) : (
                     <span style={{ color: "var(--muted)" }}>—</span>
@@ -495,10 +485,7 @@ export default function SleepTracker() {
                 <div className="offset-card-value">
                   {durPreview !== null ? (
                     <>
-                      <i
-                        className="ti ti-moon"
-                        style={{ color: "var(--blue)" }}
-                      />
+                      <i className="ti ti-moon" style={{ color: "var(--blue)" }} />
                       <span style={{ color: "var(--text)" }}>
                         {Math.floor(durPreview / 60)}h {durPreview % 60}m
                       </span>
@@ -514,11 +501,7 @@ export default function SleepTracker() {
               className="btn-log"
               onClick={handleLogEntry}
               disabled={busy || logDateInvalid}
-              title={
-                logDateInvalid
-                  ? "You can't log today or a future date"
-                  : undefined
-              }
+              title={logDateInvalid ? "You can't log today or a future date" : undefined}
             >
               Log sleep
             </button>
@@ -534,22 +517,19 @@ export default function SleepTracker() {
                   </div>
                   <div className="today-sub">
                     {fmt12(logDateEntry.sleep)} — {fmt12(logDateEntry.wake)} ·{" "}
-                    {Math.floor(
-                      calcDur(logDateEntry.sleep, logDateEntry.wake) / 60,
-                    )}
-                    h {calcDur(logDateEntry.sleep, logDateEntry.wake) % 60}m
+                    {Math.floor(calcDur(logDateEntry.sleep, logDateEntry.wake) / 60)}h{" "}
+                    {calcDur(logDateEntry.sleep, logDateEntry.wake) % 60}m
                   </div>
                 </div>
               </div>
             ) : null}
           </div>
           <div className="toast-wrap">
-            <div className={`toast-pill ${toast ? "show" : ""}`}>
-              {toast ?? ""}
-            </div>
+            <div className={`toast-pill ${toast ? "show" : ""}`}>{toast ?? ""}</div>
           </div>
         </div>
 
+        {/* DASHBOARD TAB */}
         <div className={`page ${activeTab === "dash" ? "on" : ""}`}>
           <div className="card">
             {grade && gradeInfo ? (
@@ -574,18 +554,13 @@ export default function SleepTracker() {
               <div className="grade-hero">
                 <div
                   className="grade-bubble"
-                  style={{
-                    background: "var(--surface2)",
-                    color: "var(--muted)",
-                  }}
+                  style={{ background: "var(--surface2)", color: "var(--muted)" }}
                 >
                   —
                 </div>
                 <div>
                   <div className="grade-title">No data yet</div>
-                  <div className="grade-sub">
-                    Log a few nights to see your grade
-                  </div>
+                  <div className="grade-sub">Log a few nights to see your grade</div>
                 </div>
               </div>
             )}
@@ -623,14 +598,9 @@ export default function SleepTracker() {
 
                 return (
                   <div key={date} className="week-col">
-                    <div className="week-day-lbl">
-                      {DOW_SHORT[day.getDay()]}
-                    </div>
+                    <div className="week-day-lbl">{DOW_SHORT[day.getDay()]}</div>
                     <div className="heat-cell" style={{ background: style.bg }}>
-                      <div
-                        className="heat-cell-num"
-                        style={{ color: style.num }}
-                      >
+                      <div className="heat-cell-num" style={{ color: style.num }}>
                         {day.getDate()}
                       </div>
                       <div className="tt">{tip}</div>
@@ -643,6 +613,7 @@ export default function SleepTracker() {
           </div>
         </div>
 
+        {/* HISTORY TAB */}
         <div className={`page ${activeTab === "history" ? "on" : ""}`}>
           <div className="card">
             <div className="cal-nav">
@@ -677,18 +648,27 @@ export default function SleepTracker() {
                   return <div key={`blank-${index}`} />;
                 }
 
+                const hasComment = Boolean(comments[cell.date]);
+
                 if (cell.entry) {
                   const style = heatStyle(cell.entry, cfg);
                   const duration = calcDur(cell.entry.sleep, cell.entry.wake);
-                  const tip = `${heatLabel(cell.entry, cfg)} · ${fmt12(cell.entry.sleep)}–${fmt12(cell.entry.wake)} · ${Math.floor(duration / 60)}h ${duration % 60}m`;
+                  const tip = [
+                    `${heatLabel(cell.entry, cfg)} · ${fmt12(cell.entry.sleep)}–${fmt12(cell.entry.wake)} · ${Math.floor(duration / 60)}h ${duration % 60}m`,
+                    hasComment ? `💬 ${comments[cell.date]}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
 
                   return (
                     <div
                       key={cell.date}
                       className="cal-day logged"
-                      style={{ background: style.bg }}
+                      style={{ background: style.bg, cursor: "pointer" }}
+                      onClick={() => openModal(cell.date, cell.entry)}
                     >
-                      <div className="tt">{tip}</div>
+                      {hasComment && <div className="cal-comment-ear" />}
+                      <div className="tt" style={{ whiteSpace: "pre-line" }}>{tip}</div>
                       <div className="cal-day-num" style={{ color: style.num }}>
                         {cell.day}
                       </div>
@@ -700,12 +680,16 @@ export default function SleepTracker() {
                   <div
                     key={cell.date}
                     className="cal-day"
-                    style={{ background: "var(--heat-0)" }}
+                    style={{ background: "var(--heat-0)", cursor: "pointer" }}
+                    onClick={() => openModal(cell.date, undefined)}
                   >
-                    <div
-                      className="cal-day-num"
-                      style={{ color: "var(--heat-0-num)" }}
-                    >
+                    {hasComment && <div className="cal-comment-ear" />}
+                    {hasComment && (
+                      <div className="tt" style={{ whiteSpace: "pre-line" }}>
+                        {`💬 ${comments[cell.date]}`}
+                      </div>
+                    )}
+                    <div className="cal-day-num" style={{ color: "var(--heat-0-num)" }}>
                       {cell.day}
                     </div>
                   </div>
@@ -716,6 +700,7 @@ export default function SleepTracker() {
           </div>
         </div>
 
+        {/* SETTINGS TAB */}
         <div className={`page ${activeTab === "settings" ? "on" : ""}`}>
           <div className="card">
             <div className="card-label">Targets</div>
@@ -803,6 +788,132 @@ export default function SleepTracker() {
             Save settings
           </button>
         </div>
+
+        {/* COMMENT MODAL */}
+        {selectedDate &&
+          (() => {
+            const entry = entries.find((e) => e.date === selectedDate);
+            const duration = entry ? calcDur(entry.sleep, entry.wake) : null;
+            const style = entry ? heatStyle(entry, cfg) : null;
+            const label = entry ? heatLabel(entry, cfg) : null;
+            const displayDate = new Date(
+              `${selectedDate}T12:00:00`,
+            ).toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            });
+
+            return (
+              <div
+                className="modal-backdrop"
+                onClick={() => setSelectedDate(null)}
+              >
+                <div
+                  className="modal-card"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="modal-header">
+                    <div className="modal-title">{displayDate}</div>
+                    <button
+                      type="button"
+                      className="modal-close"
+                      onClick={() => setSelectedDate(null)}
+                      aria-label="Close"
+                    >
+                      <i className="ti ti-x" />
+                    </button>
+                  </div>
+
+                  {entry && style ? (
+                    <>
+                      <div className="modal-stat-row">
+                        <div className="modal-stat">
+                          <div className="modal-stat-label">Status</div>
+                          <div
+                            className="modal-stat-value"
+                            style={{ color: style.bg }}
+                          >
+                            {label}
+                          </div>
+                        </div>
+                        <div className="modal-stat">
+                          <div className="modal-stat-label">Bedtime</div>
+                          <div className="modal-stat-value">
+                            {fmt12(entry.sleep)}
+                          </div>
+                        </div>
+                        <div className="modal-stat">
+                          <div className="modal-stat-label">Wake</div>
+                          <div className="modal-stat-value">
+                            {fmt12(entry.wake)}
+                          </div>
+                        </div>
+                      </div>
+                      {duration !== null && (
+                        <div
+                          className="modal-stat"
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <div
+                            className="modal-stat-label"
+                            style={{ margin: 0 }}
+                          >
+                            Duration
+                          </div>
+                          <div className="modal-stat-value">
+                            {Math.floor(duration / 60)}h {duration % 60}m
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      No sleep logged for this day.
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="modal-comment-label">Note</div>
+                    <textarea
+                      className="modal-comment-textarea"
+                      placeholder="Add a note for this day…"
+                      value={modalComment}
+                      onChange={(e) => setModalComment(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      className="btn-modal-cancel"
+                      onClick={() => setSelectedDate(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-modal-save"
+                      onClick={handleSaveComment}
+                      disabled={commentBusy}
+                    >
+                      {commentBusy ? "Saving…" : "Save note"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
       </div>
     </div>
   );

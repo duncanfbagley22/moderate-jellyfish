@@ -623,13 +623,18 @@
   font-family: var(--font);
   font-size: 11px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: pre-line; /* was nowrap — needed for comment line breaks */
+  width: max-content;
+  max-width: 160px;
+  text-align: center;
+  line-height: 1.5;
   z-index: 99;
   pointer-events: none;
 }
 
 .heat-cell:hover .tt,
-.cal-day.logged:hover .tt {
+.cal-day.logged:hover .tt,
+.cal-day:hover .tt { /* added — unlogged days with comments need this too */
   display: block;
 }
 
@@ -850,4 +855,158 @@
 
 .btn-back:active {
   transform: scale(0.96);
+}
+
+/* Dog-ear comment indicator */
+.cal-day {
+  overflow: visible;
+}
+
+.cal-comment-ear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 16px 16px 0; /* was 9px — bigger triangle */
+  border-color: transparent var(--blue) transparent transparent;
+  pointer-events: none;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.modal-stat-row {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-stat {
+  flex: 1;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modal-stat-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modal-stat-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-comment-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.modal-comment-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border, var(--surface2));
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.875rem;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.modal-comment-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-modal-cancel {
+  background: var(--surface2);
+  color: var(--muted);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-modal-save {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.btn-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

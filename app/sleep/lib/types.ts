@@ -30,3 +30,5 @@ export type UiState = {
   dark: boolean;
   calOffset: number;
 };
+
+export type CommentsMap = Record<string, string>;

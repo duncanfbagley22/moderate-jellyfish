@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { SleepConfig, SleepEntry, SettingsRow } from "./types";
+import type { SleepConfig, SleepEntry, SettingsRow, CommentsMap } from "./types";
 import { trimTime } from "./utils";
 
 const DEFAULT_CONFIG: SleepConfig = {
@@ -9,6 +9,7 @@ const DEFAULT_CONFIG: SleepConfig = {
   threshOk: 30,
 };
 
+// ✅ Removed comment — lives in sleep_comments now
 function rowToEntry(row: {
   date: string;
   sleep_time: string;
@@ -34,19 +35,28 @@ export async function loadSleepData(): Promise<{
   entries: SleepEntry[];
   config: SleepConfig;
   settingsId: string | null;
+  comments: CommentsMap;
 }> {
   const supabase = createClient();
 
-  const [logsResult, settingsResult] = await Promise.all([
+  // ✅ All 3 results captured
+  const [logsResult, settingsResult, commentsResult] = await Promise.all([
     supabase
       .from("sleep_logs")
       .select("date, sleep_time, wake_time")
       .order("date", { ascending: true }),
     supabase.from("settings").select("*").limit(1).maybeSingle(),
+    supabase.from("sleep_comments").select("date, comment"),
   ]);
 
   if (logsResult.error) throw logsResult.error;
   if (settingsResult.error) throw settingsResult.error;
+  if (commentsResult.error) throw commentsResult.error;
+
+  const comments: CommentsMap = {};
+  for (const row of commentsResult.data ?? []) {
+    comments[row.date] = row.comment;
+  }
 
   return {
     entries: (logsResult.data ?? []).map(rowToEntry),
@@ -54,6 +64,7 @@ export async function loadSleepData(): Promise<{
       ? rowToConfig(settingsResult.data)
       : DEFAULT_CONFIG,
     settingsId: settingsResult.data?.id ?? null,
+    comments, // ✅ Was missing from return
   };
 }
 
@@ -69,7 +80,7 @@ export async function upsertSleepLog(
       { date, sleep_time: sleep, wake_time: wake },
       { onConflict: "date" },
     )
-    .select("date, sleep_time, wake_time")
+    .select("date, sleep_time, wake_time") // ✅ Removed comment
     .single();
 
   if (error) throw error;
@@ -118,4 +129,25 @@ export async function clearSleepLogs() {
     .gte("date", "1900-01-01");
 
   if (error) throw error;
+}
+
+export async function saveComment(
+  date: string,
+  comment: string,
+): Promise<void> {
+  const supabase = createClient();
+  const trimmed = comment.trim();
+
+  if (!trimmed) {
+    const { error } = await supabase
+      .from("sleep_comments")
+      .delete()
+      .eq("date", date);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("sleep_comments")
+      .upsert({ date, comment: trimmed }, { onConflict: "date" });
+    if (error) throw error;
+  }
 }
