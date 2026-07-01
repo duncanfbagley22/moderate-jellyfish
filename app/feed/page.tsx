@@ -112,7 +112,17 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: "other", label: "Other" },
 ];
 
+const FLAG_SCORE_THRESHOLD = 0.3; // below this = flagged
+const FLAG_MIN_RATINGS = 5; // require enough ratings to matter
+
 // ── Helpers ──────────────────────────────────────────────────
+
+function isFlaggedForRemoval(source: SourceRow): boolean {
+  return (
+    source.rating_count >= FLAG_MIN_RATINGS &&
+    source.engagement_score < FLAG_SCORE_THRESHOLD
+  );
+}
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -428,6 +438,7 @@ function SourcesTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<SourceRow>>({});
   const [adding, setAdding] = useState(false);
+
   const [newForm, setNewForm] = useState({
     url: "",
     name: "",
@@ -742,10 +753,7 @@ function SourcesTab() {
       )}
 
       {loading ? (
-        <p
-          className={classes.statusMessageText}
-          style={{ padding: "2rem 0" }}
-        >
+        <p className={classes.statusMessageText} style={{ padding: "2rem 0" }}>
           Loading sources...
         </p>
       ) : (
@@ -888,7 +896,30 @@ function SourcesTab() {
                         {source.max_articles}
                       </td>
                       <td className={classes.tableCell}>
-                        {source.engagement_score?.toFixed(2)}
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                          }}
+                        >
+                          {source.engagement_score?.toFixed(2)}
+                          <span style={{ color: "#888", fontSize: "0.75rem" }}>
+                            ({source.rating_count ?? 0})
+                          </span>
+                          {isFlaggedForRemoval(source) && (
+                            <span
+                              title="Low engagement — consider removing this source"
+                              style={{
+                                color: "#c0392b",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              ⚑ Remove?
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className={classes.tableCell}>
                         <div className={classes.tableActionBtnGroup}>
@@ -933,11 +964,13 @@ export default function ArticleFeedPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const PAGE_SIZE = 20;
 
-// Set body background to match page aesthetic
-useEffect(() => {
-  document.body.style.backgroundColor = '#f5f0e8';
-  return () => { document.body.style.backgroundColor = ''; };
-}, []);
+  // Set body background to match page aesthetic
+  useEffect(() => {
+    document.body.style.backgroundColor = "#f5f0e8";
+    return () => {
+      document.body.style.backgroundColor = "";
+    };
+  }, []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -962,14 +995,20 @@ useEffect(() => {
       .limit(100);
 
     if (!error && data) {
-      const sorted = (data as unknown as Article[])
-        .map((article) => ({
-          article,
-          weight:
-            (article.sources?.engagement_score ?? 0.5) + Math.random() * 0.4,
-        }))
-        .sort((a, b) => b.weight - a.weight)
-        .map(({ article }) => article);
+      const raw = data as unknown as Article[];
+
+      // Group by calendar date (published_at preferred, fall back to created_at)
+      const byDate = new Map<string, Article[]>();
+      for (const article of raw) {
+        const key = (article.published_at ?? article.created_at).slice(0, 10);
+        if (!byDate.has(key)) byDate.set(key, []);
+        byDate.get(key)!.push(article);
+      }
+
+      // Sort date buckets newest-first; shuffle within each bucket
+      const sorted = [...byDate.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .flatMap(([, group]) => group.sort(() => Math.random() - 0.5));
       setArticles(sorted);
     }
     setLoading(false);
