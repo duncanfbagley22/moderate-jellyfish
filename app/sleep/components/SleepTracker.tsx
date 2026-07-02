@@ -717,6 +717,7 @@ export default function SleepTracker() {
               {weekDays.map(({ day, date, entry }) => {
                 const dayCfg = configForDate(periods, date);
                 const boundary = isPeriodBoundary(periods, date);
+                const hasComment = Boolean(comments[date]);
                 const style = entry
                   ? heatStyle(entry, dayCfg)
                   : { bg: "var(--heat-0)", num: "var(--heat-0-num)" };
@@ -725,6 +726,7 @@ export default function SleepTracker() {
                   entry
                     ? `${heatLabel(entry, dayCfg)} · ${fmt12(entry.sleep)}–${fmt12(entry.wake)}`
                     : "No entry",
+                  hasComment ? `💬 ${comments[date]}` : "",
                 ]
                   .filter(Boolean)
                   .join("\n");
@@ -734,8 +736,18 @@ export default function SleepTracker() {
                     <div className="week-day-lbl">{DOW_SHORT[day.getDay()]}</div>
                     <div
                       className={`heat-cell ${boundary ? "period-boundary-history" : ""}`}
-                      style={{ background: style.bg }}
+                      style={{ background: style.bg, cursor: "pointer" }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openModal(date)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openModal(date);
+                        }
+                      }}
                     >
+                      {hasComment && <div className="cal-comment-ear" />}
                       <div className="heat-cell-num" style={{ color: style.num }}>
                         {day.getDate()}
                       </div>
