@@ -18,12 +18,20 @@ export type SleepLogRow = {
   wake_time: string;
 };
 
-export type SettingsRow = {
+export type SettingsPeriodRow = {
   id: string;
+  start_date: string;
+  end_date: string | null;
   target_sleep: string;
   target_wake: string;
   thresh_good: number;
   thresh_ok: number;
+};
+
+export type SettingsPeriod = SleepConfig & {
+  id: string;
+  startDate: string;      // "YYYY-MM-DD"
+  endDate: string | null; // null = open-ended / current
 };
 
 export type UiState = {

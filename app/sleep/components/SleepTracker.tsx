@@ -9,27 +9,38 @@ import {
 } from "react";
 import {
   clearSleepLogs,
+  closePeriodEndDate,
+  deletePeriod,
   loadSleepData,
   saveComment,
-  saveSettings as persistSettings,
+  savePeriod,
   upsertSleepLog,
 } from "@/app/sleep/lib/db";
-import type { SleepConfig, SleepEntry, CommentsMap } from "@/app/sleep/lib/types";
+import type {
+  CommentsMap,
+  SettingsPeriod,
+  SleepEntry,
+} from "@/app/sleep/lib/types";
 import { loadUiState, saveUiState } from "@/app/sleep/lib/ui-state";
 import {
   avgDur,
   calcDur,
   calcOffset,
+  configForDate,
+  dateAdd,
+  defaultLogDate,
   fmt12,
   GRADES,
   heatLabel,
   heatStyle,
+  isPeriodBoundary,
+  localDateString,
   maxCalOffset,
   offsetCard,
+  periodLabel,
+  periodsOverlap,
   score7,
   streakCount,
-  defaultLogDate,
-  localDateString,
   todayDate,
   toGrade,
 } from "@/app/sleep/lib/utils";
@@ -37,6 +48,17 @@ import BackHome from "@/components/BackHome";
 import "@/app/sleep/styles/sleep-tracker.css";
 
 type Tab = "log" | "dash" | "history" | "settings";
+
+type PeriodFormState = {
+  id?: string;
+  startDate: string;
+  ongoing: boolean;
+  endDate: string;
+  sleep: string;
+  wake: string;
+  good: string;
+  ok: string;
+};
 
 const TABS: Tab[] = ["log", "dash", "history", "settings"];
 const DOW_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -92,35 +114,53 @@ function HistoryLegend() {
         <div className="legend-swatch" style={{ background: "var(--heat-0)" }} />
         No data
       </div>
+      <div className="legend-item">
+        <div className="legend-swatch" style={{ background: "var(--yellow)" }} />
+        Settings changed
+      </div>
     </div>
   );
+}
+
+function emptyPeriodForm(): PeriodFormState {
+  return {
+    id: undefined,
+    startDate: todayDate(),
+    ongoing: true,
+    endDate: "",
+    sleep: "23:00",
+    wake: "07:00",
+    good: "15",
+    ok: "30",
+  };
 }
 
 export default function SleepTracker() {
   const [entries, setEntries] = useState<SleepEntry[]>([]);
   const [comments, setComments] = useState<CommentsMap>({});
-  const [cfg, setCfg] = useState<SleepConfig>({
-    targetSleep: "23:00",
-    targetWake: "07:00",
-    threshGood: 15,
-    threshOk: 30,
+  const [periods, setPeriods] = useState<SettingsPeriod[]>([]);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return loadUiState().dark;
   });
-  const [settingsId, setSettingsId] = useState<string | null>(null);
-  const [dark, setDark] = useState(false);
-  const [calOffset, setCalOffset] = useState(0);
+  const [calOffset, setCalOffset] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    return loadUiState().calOffset;
+  });
   const [activeTab, setActiveTab] = useState<Tab>("log");
-  const [logDate, setLogDate] = useState(() => defaultLogDate());
+  const [logDate, setLogDate] = useState(() => dateAdd(defaultLogDate(), -1));
   const logDateInvalid = logDate >= todayDate();
   const [inpSleep, setInpSleep] = useState("23:00");
   const [inpWake, setInpWake] = useState("07:00");
-  const [setSleep, setSetSleep] = useState("23:00");
-  const [setWake, setSetWake] = useState("07:00");
-  const [setGood, setSetGood] = useState("15");
-  const [setOk, setSetOk] = useState("30");
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Settings period editor state
+  const [periodForm, setPeriodForm] = useState<PeriodFormState | null>(null);
+  const [periodFormError, setPeriodFormError] = useState<string | null>(null);
+  const [periodBusy, setPeriodBusy] = useState(false);
 
   // Modal state
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -143,27 +183,26 @@ export default function SleepTracker() {
   }, []);
 
   const refreshData = useCallback(async () => {
-    const data = await loadSleepData();
-    setEntries(data.entries);
-    setCfg(data.config);
-    setSettingsId(data.settingsId);
-    setComments(data.comments);
-    setSetSleep(data.config.targetSleep);
-    setSetWake(data.config.targetWake);
-    setSetGood(String(data.config.threshGood));
-    setSetOk(String(data.config.threshOk));
+    setLoading(true);
+    try {
+      const data = await loadSleepData();
+      setEntries(data.entries);
+      setPeriods(data.periods);
+      setComments(data.comments);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const ui = loadUiState();
-    setDark(ui.dark);
-    setCalOffset(ui.calOffset);
+    const timeoutId = window.setTimeout(() => {
+      void refreshData();
+    }, 0);
 
-    refreshData()
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      })
-      .finally(() => setLoading(false));
+    return () => window.clearTimeout(timeoutId);
   }, [refreshData]);
 
   useEffect(() => {
@@ -171,11 +210,12 @@ export default function SleepTracker() {
     saveUiState({ dark, calOffset });
   }, [dark, calOffset]);
 
-  useEffect(() => {
-    if (activeTab === "log") {
-      setLogDate(defaultLogDate());
+  const handleTabSelect = useCallback((nextTab: Tab) => {
+    setActiveTab(nextTab);
+    if (nextTab === "log") {
+      setLogDate(dateAdd(defaultLogDate(), -1));
     }
-  }, [activeTab]);
+  }, []);
 
   const logDateEntry = entries.find((entry) => entry.date === logDate);
   const logDateLabel = useMemo(() => {
@@ -191,18 +231,25 @@ export default function SleepTracker() {
     });
   }, [logDate]);
 
+  const logCfg = useMemo(() => configForDate(periods, logDate), [periods, logDate]);
+
   const sleepPreview =
-    inpSleep && inpWake ? offsetCard(calcOffset(inpSleep, cfg.targetSleep)) : null;
+    inpSleep && inpWake ? offsetCard(calcOffset(inpSleep, logCfg.targetSleep)) : null;
   const wakePreview =
-    inpSleep && inpWake ? offsetCard(calcOffset(inpWake, cfg.targetWake)) : null;
+    inpSleep && inpWake ? offsetCard(calcOffset(inpWake, logCfg.targetWake)) : null;
   const durPreview = inpSleep && inpWake ? calcDur(inpSleep, inpWake) : null;
 
-  const pct = score7(entries, cfg);
+  const pct = score7(entries, periods);
   const grade = toGrade(pct);
   const gradeInfo = grade ? GRADES[grade] : null;
-  const streak = streakCount(entries, cfg);
+  const streak = streakCount(entries, periods);
   const averageDuration = avgDur(entries);
   const maxOffset = maxCalOffset(entries);
+
+  const sortedPeriods = useMemo(
+    () => [...periods].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [periods],
+  );
 
   const weekDays = useMemo(() => {
     const now = new Date();
@@ -249,7 +296,7 @@ export default function SleepTracker() {
   }, [calOffset, entries]);
 
   // Modal handlers
-  function openModal(date: string, entry?: SleepEntry) {
+  function openModal(date: string, _entry?: SleepEntry) {
     setSelectedDate(date);
     setModalComment(comments[date] ?? "");
   }
@@ -298,28 +345,6 @@ export default function SleepTracker() {
     }
   }
 
-  async function handleSaveSettings() {
-    const nextCfg: SleepConfig = {
-      targetSleep: setSleep,
-      targetWake: setWake,
-      threshGood: parseInt(setGood, 10) || 15,
-      threshOk: parseInt(setOk, 10) || 30,
-    };
-
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await persistSettings(settingsId, nextCfg);
-      setCfg(result.config);
-      setSettingsId(result.settingsId);
-      showToast("Saved!");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save settings");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleClearAll() {
     if (!confirm("Clear all sleep entries?")) return;
 
@@ -343,6 +368,106 @@ export default function SleepTracker() {
     );
   }
 
+  // Settings period handlers
+  function openNewPeriodForm() {
+    setPeriodFormError(null);
+    setPeriodForm(emptyPeriodForm());
+  }
+
+  function openEditPeriodForm(period: SettingsPeriod) {
+    setPeriodFormError(null);
+    setPeriodForm({
+      id: period.id,
+      startDate: period.startDate,
+      ongoing: period.endDate === null,
+      endDate: period.endDate ?? "",
+      sleep: period.targetSleep,
+      wake: period.targetWake,
+      good: String(period.threshGood),
+      ok: String(period.threshOk),
+    });
+  }
+
+  function closePeriodForm() {
+    setPeriodForm(null);
+    setPeriodFormError(null);
+  }
+
+  async function handleSavePeriod() {
+    if (!periodForm) return;
+    const { id, startDate, ongoing, endDate, sleep, wake, good, ok } = periodForm;
+
+    if (!startDate) {
+      setPeriodFormError("Start date is required.");
+      return;
+    }
+    if (!ongoing && !endDate) {
+      setPeriodFormError("Pick an end date, or mark this period as ongoing.");
+      return;
+    }
+    if (!ongoing && endDate < startDate) {
+      setPeriodFormError("End date can't be before the start date.");
+      return;
+    }
+
+    const candidate = { startDate, endDate: ongoing ? null : endDate };
+    const others = periods.filter((p) => p.id !== id);
+    const conflict = others.find((p) => periodsOverlap(candidate, p));
+    if (conflict) {
+      setPeriodFormError(`Overlaps with ${periodLabel(conflict)}. Adjust the dates.`);
+      return;
+    }
+
+    setPeriodBusy(true);
+    setPeriodFormError(null);
+    try {
+      // Only one period may be open-ended; close the previous one if this one takes over.
+      if (ongoing) {
+        const otherOpen = others.find((p) => p.endDate === null);
+        if (otherOpen) {
+          await closePeriodEndDate(otherOpen.id, dateAdd(startDate, -1));
+        }
+      }
+
+      await savePeriod({
+        id,
+        startDate,
+        endDate: ongoing ? null : endDate,
+        targetSleep: sleep,
+        targetWake: wake,
+        threshGood: parseInt(good, 10) || 15,
+        threshOk: parseInt(ok, 10) || 30,
+      });
+
+      await refreshData();
+      showToast(id ? "Period updated!" : "Period added!");
+      closePeriodForm();
+    } catch (err: unknown) {
+      setPeriodFormError(
+        err instanceof Error ? err.message : "Failed to save period",
+      );
+    } finally {
+      setPeriodBusy(false);
+    }
+  }
+
+  async function handleDeletePeriod(period: SettingsPeriod) {
+    if (periods.length <= 1) return;
+    if (!confirm(`Delete the ${periodLabel(period)} settings period?`)) return;
+
+    setPeriodBusy(true);
+    setError(null);
+    try {
+      await deletePeriod(period.id);
+      await refreshData();
+      showToast("Period deleted");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete period");
+    } finally {
+      setPeriodBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="sleep-tracker-page">
@@ -363,12 +488,13 @@ export default function SleepTracker() {
                 </div>
               ))}
             </div>
-            <img
-              src="/moderate-jellyfish.svg"
-              alt=""
-              className="loading-logo"
-              aria-hidden="true"
-            />
+            <div className="loading-logo" aria-hidden="true">
+              <img
+                src="/moderate-jellyfish.svg"
+                alt=""
+                className="loading-logo-image"
+              />
+            </div>
           </div>
           <p className="loading-label">loading...</p>
         </div>
@@ -411,7 +537,7 @@ export default function SleepTracker() {
               key={tab}
               type="button"
               className={`tab ${activeTab === tab ? "on" : ""}`}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabSelect(tab)}
             >
               {tab === "log"
                 ? "Log"
@@ -428,7 +554,7 @@ export default function SleepTracker() {
         <div className={`page ${activeTab === "log" ? "on" : ""}`}>
           <div className="card">
             <div className="card-header">
-              <div className="card-label">Tonight&apos;s log</div>
+              <div className="card-label">Last Night&apos;s Log</div>
               <input
                 type="date"
                 className="log-date-inp"
@@ -509,11 +635,11 @@ export default function SleepTracker() {
               <div className="today-row">
                 <div
                   className="today-pip"
-                  style={{ background: heatStyle(logDateEntry, cfg).bg }}
+                  style={{ background: heatStyle(logDateEntry, logCfg).bg }}
                 />
                 <div>
                   <div className="today-text">
-                    {logDateLabel}: {heatLabel(logDateEntry, cfg)}
+                    {logDateLabel}: {heatLabel(logDateEntry, logCfg)}
                   </div>
                   <div className="today-sub">
                     {fmt12(logDateEntry.sleep)} — {fmt12(logDateEntry.wake)} ·{" "}
@@ -589,21 +715,31 @@ export default function SleepTracker() {
             <div className="card-label">This week</div>
             <div className="week-strip">
               {weekDays.map(({ day, date, entry }) => {
+                const dayCfg = configForDate(periods, date);
+                const boundary = isPeriodBoundary(periods, date);
                 const style = entry
-                  ? heatStyle(entry, cfg)
+                  ? heatStyle(entry, dayCfg)
                   : { bg: "var(--heat-0)", num: "var(--heat-0-num)" };
-                const tip = entry
-                  ? `${heatLabel(entry, cfg)} · ${fmt12(entry.sleep)}–${fmt12(entry.wake)}`
-                  : "No entry";
+                const tip = [
+                  boundary ? "⚙️ Settings changed here" : "",
+                  entry
+                    ? `${heatLabel(entry, dayCfg)} · ${fmt12(entry.sleep)}–${fmt12(entry.wake)}`
+                    : "No entry",
+                ]
+                  .filter(Boolean)
+                  .join("\n");
 
                 return (
                   <div key={date} className="week-col">
                     <div className="week-day-lbl">{DOW_SHORT[day.getDay()]}</div>
-                    <div className="heat-cell" style={{ background: style.bg }}>
+                    <div
+                      className={`heat-cell ${boundary ? "period-boundary-history" : ""}`}
+                      style={{ background: style.bg }}
+                    >
                       <div className="heat-cell-num" style={{ color: style.num }}>
                         {day.getDate()}
                       </div>
-                      <div className="tt">{tip}</div>
+                      <div className="tt" style={{ whiteSpace: "pre-line" }}>{tip}</div>
                     </div>
                   </div>
                 );
@@ -649,48 +785,60 @@ export default function SleepTracker() {
                 }
 
                 const hasComment = Boolean(comments[cell.date]);
+                const dayCfg = configForDate(periods, cell.date);
+                const boundary = isPeriodBoundary(periods, cell.date);
 
                 if (cell.entry) {
-                  const style = heatStyle(cell.entry, cfg);
+                  const style = heatStyle(cell.entry, dayCfg);
                   const duration = calcDur(cell.entry.sleep, cell.entry.wake);
                   const tip = [
-                    `${heatLabel(cell.entry, cfg)} · ${fmt12(cell.entry.sleep)}–${fmt12(cell.entry.wake)} · ${Math.floor(duration / 60)}h ${duration % 60}m`,
+                    boundary ? "⚙️ Settings changed here" : "",
+                    `${heatLabel(cell.entry, dayCfg)} · ${fmt12(cell.entry.sleep)}–${fmt12(cell.entry.wake)} · ${Math.floor(duration / 60)}h ${duration % 60}m`,
                     hasComment ? `💬 ${comments[cell.date]}` : "",
                   ]
                     .filter(Boolean)
                     .join("\n");
 
                   return (
-                    <div
-                      key={cell.date}
-                      className="cal-day logged"
-                      style={{ background: style.bg, cursor: "pointer" }}
-                      onClick={() => openModal(cell.date, cell.entry)}
-                    >
-                      {hasComment && <div className="cal-comment-ear" />}
-                      <div className="tt" style={{ whiteSpace: "pre-line" }}>{tip}</div>
-                      <div className="cal-day-num" style={{ color: style.num }}>
-                        {cell.day}
+                    <div key={cell.date} className="cal-day-wrap">
+                      <div
+                        className={`cal-day logged ${boundary ? "period-boundary-history" : ""}`}
+                        style={{ background: style.bg, cursor: "pointer" }}
+                        onClick={() => openModal(cell.date, cell.entry)}
+                      >
+                        {hasComment && <div className="cal-comment-ear" />}
+                        <div className="tt" style={{ whiteSpace: "pre-line" }}>{tip}</div>
+                        <div className="cal-day-num" style={{ color: style.num }}>
+                          {cell.day}
+                        </div>
                       </div>
                     </div>
                   );
                 }
 
+                const emptyTip = [
+                  boundary ? "⚙️ Settings changed here" : "",
+                  hasComment ? `💬 ${comments[cell.date]}` : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n");
+
                 return (
-                  <div
-                    key={cell.date}
-                    className="cal-day"
-                    style={{ background: "var(--heat-0)", cursor: "pointer" }}
-                    onClick={() => openModal(cell.date, undefined)}
-                  >
-                    {hasComment && <div className="cal-comment-ear" />}
-                    {hasComment && (
-                      <div className="tt" style={{ whiteSpace: "pre-line" }}>
-                        {`💬 ${comments[cell.date]}`}
+                  <div key={cell.date} className="cal-day-wrap">
+                    <div
+                      className={`cal-day ${boundary ? "period-boundary-history" : ""}`}
+                      style={{ background: "var(--heat-0)", cursor: "pointer" }}
+                      onClick={() => openModal(cell.date, undefined)}
+                    >
+                      {hasComment && <div className="cal-comment-ear" />}
+                      {emptyTip && (
+                        <div className="tt" style={{ whiteSpace: "pre-line" }}>
+                          {emptyTip}
+                        </div>
+                      )}
+                      <div className="cal-day-num" style={{ color: "var(--heat-0-num)" }}>
+                        {cell.day}
                       </div>
-                    )}
-                    <div className="cal-day-num" style={{ color: "var(--heat-0-num)" }}>
-                      {cell.day}
                     </div>
                   </div>
                 );
@@ -703,65 +851,216 @@ export default function SleepTracker() {
         {/* SETTINGS TAB */}
         <div className={`page ${activeTab === "settings" ? "on" : ""}`}>
           <div className="card">
-            <div className="card-label">Targets</div>
-            <div className="setting-row">
-              <div>
-                <div className="setting-key">Target bedtime</div>
-                <div className="setting-hint">When you want to be asleep</div>
-              </div>
-              <input
-                type="time"
-                className="set-inp"
-                value={setSleep}
-                onChange={(event) => setSetSleep(event.target.value)}
-              />
+            <div className="card-header">
+              <div className="card-label">Settings periods</div>
+              <button
+                type="button"
+                className="btn-add-period"
+                onClick={openNewPeriodForm}
+              >
+                <i className="ti ti-plus" /> Add period
+              </button>
             </div>
-            <div className="setting-row">
-              <div>
-                <div className="setting-key">Target wake time</div>
-                <div className="setting-hint">When you want to wake up</div>
+
+            {sortedPeriods.length === 0 ? (
+              <div className="setting-hint">
+                No settings yet — add your first period.
               </div>
-              <input
-                type="time"
-                className="set-inp"
-                value={setWake}
-                onChange={(event) => setSetWake(event.target.value)}
-              />
-            </div>
+            ) : (
+              <div className="period-list">
+                {sortedPeriods.map((period) => (
+                  <div key={period.id} className="period-row">
+                    <div>
+                      <div className="period-row-range">
+                        {periodLabel(period)}
+                        {period.endDate === null && (
+                          <span className="period-current-pill">Current</span>
+                        )}
+                      </div>
+                      <div className="setting-hint">
+                        {fmt12(period.targetSleep)} – {fmt12(period.targetWake)} · on
+                        target ±{period.threshGood}m, close ±{period.threshOk}m
+                      </div>
+                    </div>
+                    <div className="period-row-actions">
+                      <button
+                        type="button"
+                        className="btn-period-edit"
+                        onClick={() => openEditPeriodForm(period)}
+                        aria-label="Edit period"
+                      >
+                        <i className="ti ti-pencil" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-period-delete"
+                        onClick={() => handleDeletePeriod(period)}
+                        disabled={periods.length <= 1 || periodBusy}
+                        aria-label="Delete period"
+                      >
+                        <i className="ti ti-trash" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="card">
-            <div className="card-label">Tolerance bands</div>
-            <div className="setting-row">
-              <div>
-                <div className="setting-key">On target</div>
-                <div className="setting-hint">Within this many minutes</div>
+
+          {periodForm ? (
+            <div className="card">
+              <div className="card-label">
+                {periodForm.id ? "Edit period" : "New period"}
               </div>
-              <input
-                type="number"
-                className="set-inp"
-                value={setGood}
-                min={5}
-                max={60}
-                step={5}
-                onChange={(event) => setSetGood(event.target.value)}
-              />
-            </div>
-            <div className="setting-row">
-              <div>
-                <div className="setting-key">Close</div>
-                <div className="setting-hint">Within this many minutes</div>
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">Start date</div>
+                  <div className="setting-hint">First night this applies to</div>
+                </div>
+                <input
+                  type="date"
+                  className="set-inp"
+                  value={periodForm.startDate}
+                  onChange={(event) =>
+                    setPeriodForm((f) =>
+                      f ? { ...f, startDate: event.target.value } : f,
+                    )
+                  }
+                />
               </div>
-              <input
-                type="number"
-                className="set-inp"
-                value={setOk}
-                min={10}
-                max={90}
-                step={5}
-                onChange={(event) => setSetOk(event.target.value)}
-              />
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">Ongoing</div>
+                  <div className="setting-hint">
+                    No end date — applies until you add a newer period
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={periodForm.ongoing}
+                  onChange={(event) =>
+                    setPeriodForm((f) =>
+                      f ? { ...f, ongoing: event.target.checked } : f,
+                    )
+                  }
+                />
+              </div>
+
+              {!periodForm.ongoing ? (
+                <div className="setting-row">
+                  <div>
+                    <div className="setting-key">End date</div>
+                    <div className="setting-hint">Last night this applies to</div>
+                  </div>
+                  <input
+                    type="date"
+                    className="set-inp"
+                    value={periodForm.endDate}
+                    onChange={(event) =>
+                      setPeriodForm((f) =>
+                        f ? { ...f, endDate: event.target.value } : f,
+                      )
+                    }
+                  />
+                </div>
+              ) : null}
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">Target bedtime</div>
+                </div>
+                <input
+                  type="time"
+                  className="set-inp"
+                  value={periodForm.sleep}
+                  onChange={(event) =>
+                    setPeriodForm((f) =>
+                      f ? { ...f, sleep: event.target.value } : f,
+                    )
+                  }
+                />
+              </div>
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">Target wake time</div>
+                </div>
+                <input
+                  type="time"
+                  className="set-inp"
+                  value={periodForm.wake}
+                  onChange={(event) =>
+                    setPeriodForm((f) =>
+                      f ? { ...f, wake: event.target.value } : f,
+                    )
+                  }
+                />
+              </div>
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">On target</div>
+                  <div className="setting-hint">Within this many minutes</div>
+                </div>
+                <input
+                  type="number"
+                  className="set-inp"
+                  min={5}
+                  max={60}
+                  step={5}
+                  value={periodForm.good}
+                  onChange={(event) =>
+                    setPeriodForm((f) =>
+                      f ? { ...f, good: event.target.value } : f,
+                    )
+                  }
+                />
+              </div>
+
+              <div className="setting-row">
+                <div>
+                  <div className="setting-key">Close</div>
+                  <div className="setting-hint">Within this many minutes</div>
+                </div>
+                <input
+                  type="number"
+                  className="set-inp"
+                  min={10}
+                  max={90}
+                  step={5}
+                  value={periodForm.ok}
+                  onChange={(event) =>
+                    setPeriodForm((f) => (f ? { ...f, ok: event.target.value } : f))
+                  }
+                />
+              </div>
+
+              {periodFormError ? (
+                <div className="period-form-error">{periodFormError}</div>
+              ) : null}
+
+              <div className="modal-actions" style={{ marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={closePeriodForm}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-modal-save"
+                  onClick={handleSavePeriod}
+                  disabled={periodBusy}
+                >
+                  {periodBusy ? "Saving…" : "Save period"}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : null}
+
           <div className="card">
             <div className="card-label">Data</div>
             <div className="setting-row">
@@ -779,23 +1078,16 @@ export default function SleepTracker() {
               </button>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-save"
-            onClick={handleSaveSettings}
-            disabled={busy}
-          >
-            Save settings
-          </button>
         </div>
 
         {/* COMMENT MODAL */}
         {selectedDate &&
           (() => {
             const entry = entries.find((e) => e.date === selectedDate);
+            const modalCfg = configForDate(periods, selectedDate);
             const duration = entry ? calcDur(entry.sleep, entry.wake) : null;
-            const style = entry ? heatStyle(entry, cfg) : null;
-            const label = entry ? heatLabel(entry, cfg) : null;
+            const style = entry ? heatStyle(entry, modalCfg) : null;
+            const label = entry ? heatLabel(entry, modalCfg) : null;
             const displayDate = new Date(
               `${selectedDate}T12:00:00`,
             ).toLocaleDateString("en-US", {

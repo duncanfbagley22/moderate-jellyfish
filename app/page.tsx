@@ -16,11 +16,11 @@ export default function Home() {
         marginBottom: '2rem',
         color: '#1a1a1a',
       }}>
-        Duncan's Apps
+        Duncan&apos;s Apps
       </h1>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
         <Link href="/feed" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
-          📰 Duncan's Daily Digest
+          📰 Duncan&apos;s Daily Digest
         </Link>
         <Link href="/sleep" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
           😴 Sleep Tracker

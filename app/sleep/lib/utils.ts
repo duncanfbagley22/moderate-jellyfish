@@ -1,4 +1,63 @@
-import type { SleepConfig, SleepEntry } from "./types";
+import type { SleepConfig, SleepEntry, SettingsPeriod } from "./types";
+
+export const DEFAULT_CONFIG: SleepConfig = {
+  targetSleep: "23:00",
+  targetWake: "07:00",
+  threshGood: 15,
+  threshOk: 30,
+};
+
+export function periodForDate(periods: SettingsPeriod[], date: string): SettingsPeriod | null {
+  if (!periods.length) return null;
+  const sorted = [...periods].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const covering = sorted.find(
+    (p) => date >= p.startDate && (p.endDate === null || date <= p.endDate),
+  );
+  if (covering) return covering;
+  // fallback for gaps / dates before the earliest period
+  const preceding = [...sorted].reverse().find((p) => p.startDate <= date);
+  return preceding ?? sorted[0];
+}
+
+export function configForDate(periods: SettingsPeriod[], date: string): SleepConfig {
+  const period = periodForDate(periods, date);
+  return period
+    ? {
+        targetSleep: period.targetSleep,
+        targetWake: period.targetWake,
+        threshGood: period.threshGood,
+        threshOk: period.threshOk,
+      }
+    : DEFAULT_CONFIG;
+}
+
+export function periodsOverlap(
+  a: { startDate: string; endDate: string | null },
+  b: { startDate: string; endDate: string | null },
+): boolean {
+  const aEnd = a.endDate ?? "9999-12-31";
+  const bEnd = b.endDate ?? "9999-12-31";
+  return a.startDate <= bEnd && b.startDate <= aEnd;
+}
+
+export function periodLabel(period: SettingsPeriod): string {
+  const fmt = (d: string) =>
+    new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return period.endDate ? `${fmt(period.startDate)} – ${fmt(period.endDate)}` : `${fmt(period.startDate)} – Present`;
+}
+
+export function dateAdd(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return localDateString(d);
+}
+
+export function isPeriodBoundary(periods: SettingsPeriod[], date: string): boolean {
+  if (periods.length < 2) return false;
+  const prev = periodForDate(periods, dateAdd(date, -1));
+  const curr = periodForDate(periods, date);
+  return (prev?.id ?? null) !== (curr?.id ?? null);
+}
 
 export function trimTime(value: string) {
   return value.slice(0, 5);
@@ -58,18 +117,17 @@ export function fmt12(t: string) {
   return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "pm" : "am"}`;
 }
 
-export function score7(entries: SleepEntry[], cfg: SleepConfig) {
+export function score7(entries: SleepEntry[], periods: SettingsPeriod[]) {
   const last7 = entries.slice(-7);
   if (!last7.length) return null;
-
   let pts = 0;
   last7.forEach((entry) => {
+    const cfg = configForDate(periods, entry.date);
     const w = worstOff(entry, cfg);
     if (w <= cfg.threshGood) pts += 4;
     else if (w <= cfg.threshOk) pts += 2;
     else if (w <= cfg.threshOk * 2) pts += 1;
   });
-
   return pts / (last7.length * 4);
 }
 
@@ -115,9 +173,10 @@ export const GRADES = {
   },
 } as const;
 
-export function streakCount(entries: SleepEntry[], cfg: SleepConfig) {
+export function streakCount(entries: SleepEntry[], periods: SettingsPeriod[]) {
   let streak = 0;
   for (let i = entries.length - 1; i >= 0; i--) {
+    const cfg = configForDate(periods, entries[i].date);
     if (worstOff(entries[i], cfg) <= cfg.threshGood) streak++;
     else break;
   }

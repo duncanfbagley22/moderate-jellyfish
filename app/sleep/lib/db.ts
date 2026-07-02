@@ -1,29 +1,16 @@
 import { createClient } from "@/lib/supabase/client";
-import type { SleepConfig, SleepEntry, SettingsRow, CommentsMap } from "./types";
+import type { SleepConfig, SleepEntry, SettingsPeriod, SettingsPeriodRow, CommentsMap } from "./types";
 import { trimTime } from "./utils";
 
-const DEFAULT_CONFIG: SleepConfig = {
-  targetSleep: "23:00",
-  targetWake: "07:00",
-  threshGood: 15,
-  threshOk: 30,
-};
-
-// ✅ Removed comment — lives in sleep_comments now
-function rowToEntry(row: {
-  date: string;
-  sleep_time: string;
-  wake_time: string;
-}): SleepEntry {
-  return {
-    date: row.date,
-    sleep: trimTime(row.sleep_time),
-    wake: trimTime(row.wake_time),
-  };
+function rowToEntry(row: { date: string; sleep_time: string; wake_time: string }): SleepEntry {
+  return { date: row.date, sleep: trimTime(row.sleep_time), wake: trimTime(row.wake_time) };
 }
 
-function rowToConfig(row: SettingsRow): SleepConfig {
+function rowToPeriod(row: SettingsPeriodRow): SettingsPeriod {
   return {
+    id: row.id,
+    startDate: row.start_date,
+    endDate: row.end_date,
     targetSleep: trimTime(row.target_sleep),
     targetWake: trimTime(row.target_wake),
     threshGood: row.thresh_good,
@@ -33,38 +20,27 @@ function rowToConfig(row: SettingsRow): SleepConfig {
 
 export async function loadSleepData(): Promise<{
   entries: SleepEntry[];
-  config: SleepConfig;
-  settingsId: string | null;
+  periods: SettingsPeriod[];
   comments: CommentsMap;
 }> {
   const supabase = createClient();
-
-  // ✅ All 3 results captured
-  const [logsResult, settingsResult, commentsResult] = await Promise.all([
-    supabase
-      .from("sleep_logs")
-      .select("date, sleep_time, wake_time")
-      .order("date", { ascending: true }),
-    supabase.from("settings").select("*").limit(1).maybeSingle(),
+  const [logsResult, periodsResult, commentsResult] = await Promise.all([
+    supabase.from("sleep_logs").select("date, sleep_time, wake_time").order("date", { ascending: true }),
+    supabase.from("settings_periods").select("*").order("start_date", { ascending: true }),
     supabase.from("sleep_comments").select("date, comment"),
   ]);
 
   if (logsResult.error) throw logsResult.error;
-  if (settingsResult.error) throw settingsResult.error;
+  if (periodsResult.error) throw periodsResult.error;
   if (commentsResult.error) throw commentsResult.error;
 
   const comments: CommentsMap = {};
-  for (const row of commentsResult.data ?? []) {
-    comments[row.date] = row.comment;
-  }
+  for (const row of commentsResult.data ?? []) comments[row.date] = row.comment;
 
   return {
     entries: (logsResult.data ?? []).map(rowToEntry),
-    config: settingsResult.data
-      ? rowToConfig(settingsResult.data)
-      : DEFAULT_CONFIG,
-    settingsId: settingsResult.data?.id ?? null,
-    comments, // ✅ Was missing from return
+    periods: (periodsResult.data ?? []).map(rowToPeriod),
+    comments,
   };
 }
 
@@ -85,40 +61,6 @@ export async function upsertSleepLog(
 
   if (error) throw error;
   return rowToEntry(data);
-}
-
-export async function saveSettings(
-  settingsId: string | null,
-  config: SleepConfig,
-): Promise<{ config: SleepConfig; settingsId: string }> {
-  const supabase = createClient();
-  const payload = {
-    target_sleep: config.targetSleep,
-    target_wake: config.targetWake,
-    thresh_good: config.threshGood,
-    thresh_ok: config.threshOk,
-  };
-
-  if (settingsId) {
-    const { data, error } = await supabase
-      .from("settings")
-      .update(payload)
-      .eq("id", settingsId)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-    return { config: rowToConfig(data), settingsId: data.id };
-  }
-
-  const { data, error } = await supabase
-    .from("settings")
-    .insert(payload)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return { config: rowToConfig(data), settingsId: data.id };
 }
 
 export async function clearSleepLogs() {
@@ -150,4 +92,44 @@ export async function saveComment(
       .upsert({ date, comment: trimmed }, { onConflict: "date" });
     if (error) throw error;
   }
+}
+
+export async function savePeriod(
+  period: (SleepConfig & { startDate: string; endDate: string | null; id?: string }),
+): Promise<SettingsPeriod> {
+  const supabase = createClient();
+  const payload = {
+    start_date: period.startDate,
+    end_date: period.endDate,
+    target_sleep: period.targetSleep,
+    target_wake: period.targetWake,
+    thresh_good: period.threshGood,
+    thresh_ok: period.threshOk,
+  };
+
+  if (period.id) {
+    const { data, error } = await supabase
+      .from("settings_periods").update(payload).eq("id", period.id).select("*").single();
+    if (error) throw error;
+    return rowToPeriod(data);
+  }
+
+  const { data, error } = await supabase
+    .from("settings_periods").insert(payload).select("*").single();
+  if (error) throw error;
+  return rowToPeriod(data);
+}
+
+export async function closePeriodEndDate(id: string, endDate: string): Promise<SettingsPeriod> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("settings_periods").update({ end_date: endDate }).eq("id", id).select("*").single();
+  if (error) throw error;
+  return rowToPeriod(data);
+}
+
+export async function deletePeriod(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("settings_periods").delete().eq("id", id);
+  if (error) throw error;
 }

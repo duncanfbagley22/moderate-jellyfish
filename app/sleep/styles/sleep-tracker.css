@@ -1010,3 +1010,32 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.week-col,
+.cal-day-wrap {
+  position: relative;
+}
+
+.week-col.period-boundary::before,
+.cal-day-wrap.period-boundary::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 0px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 1px;
+  background: var(--slate);
+}
+
+.cal-day.period-boundary-history::before,
+.heat-cell.period-boundary-history::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 1px;
+  background: var(--slate);
+}

@@ -1,4 +1,4 @@
-import { getActiveSources, upsertArticle } from './db'
+import { getActiveSources } from './db'
 import { fetchRSS } from './rss'
 import { fetchWithJina, fetchFullText } from './jina'
 import { discoverArticleUrls } from './discover'

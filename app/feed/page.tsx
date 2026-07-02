@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import ReactMarkdown from "react-markdown";
 import {
@@ -466,16 +466,20 @@ function SourcesTab() {
   const [testError, setTestError] = useState<string | null>(null);
   const [testLoading, setTestLoading] = useState(false);
 
-  async function fetchSources() {
+  const fetchSources = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("sources").select("*").order("name");
     setSources(data ?? []);
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
-    fetchSources();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      void fetchSources();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchSources]);
 
   async function handleDelete(id: string) {
     if (!confirm("Remove this source? Articles will be preserved.")) return;
@@ -983,7 +987,7 @@ export default function ArticleFeedPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  async function fetchArticles() {
+  const fetchArticles = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("articles")
@@ -1012,11 +1016,15 @@ export default function ArticleFeedPage() {
       setArticles(sorted);
     }
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
-    fetchArticles();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      void fetchArticles();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchArticles]);
 
   function handleArchive(id: string) {
     setArticles((prev) => prev.filter((a) => a.id !== id));
@@ -1063,7 +1071,7 @@ export default function ArticleFeedPage() {
           </p>
           <hr className={classes.mastheadRule} />
           <h1 className={`${classes.mastTitle} ${unifraktur.className}`}>
-            Duncan's Daily Digest
+            Duncan&apos;s Daily Digest
           </h1>
           <hr className={classes.mastheadRule} />
 
