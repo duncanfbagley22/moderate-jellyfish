@@ -42,6 +42,13 @@ export default function BalanzaApp() {
   // so it can be persisted alongside the blueprint on save even after the
   // input clears.
   const [lastPrompt, setLastPrompt] = useState("");
+  // Snapshot of the structured inputs (everything but model/userPrompt) that
+  // produced the current `markdown`, so the output panel can render them as
+  // pills even after the user keeps tweaking the live sandbox controls.
+  const [lastParams, setLastParams] = useState<Pick<
+    PromptParams,
+    "tier" | "topic" | "timeframe" | "intent" | "platform" | "friction" | "creativity"
+  > | null>(null);
 
   const handleSelectTierFromFlowchart = useCallback((tier: Tier) => {
     setSelectedTier(tier);
@@ -66,6 +73,15 @@ export default function BalanzaApp() {
     setIsGenerating(true);
     setIsSaved(false);
     setLastPrompt(trimmedPrompt);
+    setLastParams({
+      tier: selectedTier,
+      topic: params.topic,
+      timeframe: params.timeframe,
+      intent: params.intent,
+      platform: params.platform,
+      friction: params.friction,
+      creativity: params.creativity,
+    });
     try {
       const result = await generateBlueprint({
         tier: selectedTier,
@@ -194,6 +210,7 @@ export default function BalanzaApp() {
                       isGenerating={isGenerating}
                       isSaved={isSaved}
                       onSave={handleSave}
+                      usedParams={lastParams}
                     />
                   </div>
                   <PromptBar

@@ -37,7 +37,6 @@ export const TIER_FORCE_LABEL: Record<Tier, string> = {
   maintenance: 'Maintenance',
   growth: 'Growth',
 };
-
 // The state a node represents — matches the reference diagram's node labels.
 export const TIER_STATE_LABEL: Record<Tier, string> = {
   clean_up: 'Deficit',
@@ -50,4 +49,31 @@ export const TIER_SUMMARY: Record<Tier, string> = {
   clean_up: "What you're lacking",
   maintenance: 'Where you are',
   growth: 'Where you want to be',
+};
+
+export const TOPIC_LABEL: Record<Topic, string> = {
+  work: 'Work',
+  exercise: 'Exercise',
+  spiritual: 'Spiritual',
+  social: 'Social',
+  financial: 'Financial',
+  creative: 'Creative',
+  home: 'Home',
+  other: 'Other',
+};
+
+export const TIMEFRAME_LABEL: Record<Timeframe, string> = {
+  short_term: 'Short-Term',
+  long_term: 'Long-Term',
+};
+
+export const INTENT_LABEL: Record<Intent, string> = {
+  brainstorm: 'Brainstorm',
+  blueprint: 'Blueprint',
+};
+
+export const PLATFORM_LABEL: Record<Platform, string> = {
+  physical: 'Physical',
+  code: 'Code',
+  spreadsheet: 'Spreadsheet',
 };
