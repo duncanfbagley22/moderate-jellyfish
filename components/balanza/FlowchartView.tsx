@@ -438,7 +438,7 @@ export function FlowchartView({ onSelectTier }: FlowchartViewProps) {
             }}
           >
             <span
-              className={`font-mono-ui text-[14px] whitespace-nowrap rounded-full border border-black/10 bg-white/60 px-2.5 py-1 shadow-[0_0_20px_rgba(255,255,255,0.18)] backdrop-blur-lg transition-all duration-150 cursor-default ${LABEL_CLASS[edge.color]} dark:border-white/10 dark:bg-white/5`}
+              className={`font-mono-ui text-[9px] sm:text-[11px] md:text-[14px] whitespace-nowrap rounded-full border border-black/10 bg-white/60 px-1.5 py-0.5 sm:px-2 sm:py-1 md:px-2.5 md:py-1 shadow-[0_0_20px_rgba(255,255,255,0.18)] backdrop-blur-lg transition-all duration-150 cursor-default ${LABEL_CLASS[edge.color]} dark:border-white/10 dark:bg-white/5`}
             >
               {edge.label}
             </span>
@@ -490,7 +490,7 @@ const FlowNode = forwardRef<
       layoutId={`tier-card-${tier}`}
       glow={glow}
       tooltip={TIER_SUMMARY[tier]}
-      className="absolute w-32 h-32 flex items-center justify-center text-center cursor-pointer p-3 -translate-x-1/2 -translate-y-1/2"
+      className="absolute w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center text-center cursor-pointer p-2 sm:p-3 -translate-x-1/2 -translate-y-1/2"
       style={{
         left: `${NODE_POS[tier].left}%`,
         top: `${NODE_POS[tier].top}%`,
@@ -498,7 +498,7 @@ const FlowNode = forwardRef<
       onClick={() => onSelect(tier)}
       whileTap={{ scale: 0.96 }}
     >
-      <h3 className="font-display text-lg font-semibold text-slate-800 dark:text-slate-100">
+      <h3 className="font-display text-xs sm:text-base md:text-lg font-semibold text-slate-800 dark:text-slate-100">
         {TIER_STATE_LABEL[tier]}
       </h3>
     </GlassCard>
