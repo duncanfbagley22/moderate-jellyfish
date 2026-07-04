@@ -7,6 +7,7 @@ import { FlowchartView } from '@/components/balanza/FlowchartView';
 import { TierStack } from '@/components/balanza/TierStack';
 import { SandboxPanel } from '@/components/balanza/SandboxPanel';
 import { OutputPanel } from '@/components/balanza/OutputPanel';
+import { PromptBar } from '@/components/balanza/PromptBar';
 import { Baseline } from '@/components/balanza/Baseline';
 import { clsx } from '@/lib/balanza/clsx';
 import { generateBlueprint } from '@/lib/balanza/gemini';
@@ -16,22 +17,29 @@ import type { PromptParams, Tier } from '@/lib/balanza/types';
 
 type AppState = 'flowchart' | 'sandbox';
 
-const DEFAULT_PARAMS: Omit<PromptParams, 'tier'> = {
+const DEFAULT_PARAMS: Omit<PromptParams, 'tier' | 'userPrompt'> = {
   topic: 'work',
   timeframe: 'short_term',
   intent: 'brainstorm',
   platform: 'code',
   friction: 30,
+  creativity: 50,
   model: 'gemini-flash-lite',
 };
 
 export default function BalanzaApp() {
   const [view, setView] = useState<AppState>('flowchart');
   const [selectedTier, setSelectedTier] = useState<Tier>('maintenance');
-  const [params, setParams] = useState<Omit<PromptParams, 'tier'>>(DEFAULT_PARAMS);
+  const [params, setParams] = useState<Omit<PromptParams, 'tier' | 'userPrompt'>>(DEFAULT_PARAMS);
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  // Live text in the prompt bar; cleared once a generation succeeds.
+  const [promptText, setPromptText] = useState('');
+  // The instruction that actually produced the current `markdown`, kept around
+  // so it can be persisted alongside the blueprint on save even after the
+  // input clears.
+  const [lastPrompt, setLastPrompt] = useState('');
 
   const handleSelectTierFromFlowchart = useCallback((tier: Tier) => {
     setSelectedTier(tier);
@@ -50,11 +58,16 @@ export default function BalanzaApp() {
   }, []);
 
   async function handleGenerate() {
+    const trimmedPrompt = promptText.trim();
+    if (!trimmedPrompt) return;
+
     setIsGenerating(true);
     setIsSaved(false);
+    setLastPrompt(trimmedPrompt);
     try {
-      const result = await generateBlueprint({ tier: selectedTier, ...params });
+      const result = await generateBlueprint({ tier: selectedTier, ...params, userPrompt: trimmedPrompt });
       setMarkdown(result.markdown);
+      setPromptText('');
     } catch (err) {
       setMarkdown(`**Something went wrong generating this blueprint.**\n\n${(err as Error).message}`);
     } finally {
@@ -68,7 +81,7 @@ export default function BalanzaApp() {
     const { error } = await supabase.from('saved_blueprints').insert({
       session_id: getSessionId(),
       tier: selectedTier,
-      metadata: { tier: selectedTier, ...params },
+      metadata: { tier: selectedTier, ...params, userPrompt: lastPrompt },
       payload_md: markdown,
     });
     if (!error) setIsSaved(true);
@@ -125,20 +138,28 @@ export default function BalanzaApp() {
                 <div className="overflow-y-auto pr-1 space-y-6">
                   <TierStack selected={selectedTier} onSelect={handleSelectTierInSandbox} />
                   <SandboxPanel
-                    params={{ tier: selectedTier, ...params }}
+                    params={{ tier: selectedTier, userPrompt: promptText, ...params }}
                     onChange={handleParamChange}
-                    onGenerate={handleGenerate}
-                    isGenerating={isGenerating}
                   />
                 </div>
 
-                <div className="min-h-0">
-                  <OutputPanel
-                    tier={selectedTier}
-                    markdown={markdown}
+                {/* flex-col-reverse on mobile puts the prompt bar above the output;
+                    lg:flex-col puts it back at the bottom on desktop. */}
+                <div className="min-h-0 flex flex-col-reverse lg:flex-col gap-4 h-full">
+                  <div className="flex-1 min-h-0">
+                    <OutputPanel
+                      tier={selectedTier}
+                      markdown={markdown}
+                      isGenerating={isGenerating}
+                      isSaved={isSaved}
+                      onSave={handleSave}
+                    />
+                  </div>
+                  <PromptBar
+                    value={promptText}
+                    onChange={setPromptText}
+                    onSubmit={handleGenerate}
                     isGenerating={isGenerating}
-                    isSaved={isSaved}
-                    onSave={handleSave}
                   />
                 </div>
               </motion.div>

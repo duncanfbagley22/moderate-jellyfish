@@ -13,7 +13,10 @@ export interface PromptParams {
   intent: Intent;
   platform: Platform;
   friction: number; // 0-100 slider
+  creativity: number; // 0-100 slider
   model: ModelEngine;
+  /** The user's free-text instruction — this is the primary ask the prompt is built around. */
+  userPrompt: string;
 }
 
 export interface SavedBlueprint {

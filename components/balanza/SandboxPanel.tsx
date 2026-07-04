@@ -3,7 +3,7 @@
 import * as Select from '@radix-ui/react-select';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import * as Slider from '@radix-ui/react-slider';
-import { ChevronDown, Check, Zap, Loader2 } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import {
   TIER_FORCE_LABEL,
   type PromptParams,
@@ -18,8 +18,6 @@ import { clsx } from '@/lib/balanza/clsx';
 interface SandboxPanelProps {
   params: PromptParams;
   onChange: (patch: Partial<PromptParams>) => void;
-  onGenerate: () => void;
-  isGenerating: boolean;
 }
 
 const TOPICS: { value: Topic; label: string }[] = [
@@ -38,7 +36,7 @@ const TIMEFRAMES: { value: Timeframe; label: string }[] = [
   { value: 'long_term', label: 'Long-Term' },
 ];
 
-export function SandboxPanel({ params, onChange, onGenerate, isGenerating }: SandboxPanelProps) {
+export function SandboxPanel({ params, onChange }: SandboxPanelProps) {
   return (
     <div className="space-y-6">
       <p className="font-mono-ui text-[10px] tracking-widest text-slate-400 uppercase">
@@ -116,6 +114,25 @@ export function SandboxPanel({ params, onChange, onGenerate, isGenerating }: San
         </div>
       </Field>
 
+      <Field label={`Creativity — ${params.creativity}`}>
+        <Slider.Root
+          className="relative flex items-center w-full h-5"
+          value={[params.creativity]}
+          max={100}
+          step={5}
+          onValueChange={([v]) => onChange({ creativity: v })}
+        >
+          <Slider.Track className="relative h-1 flex-1 rounded-full bg-black/10 dark:bg-white/10">
+            <Slider.Range className="absolute h-full rounded-full bg-linear-to-r from-violet-400 to-amber-400" />
+          </Slider.Track>
+          <Slider.Thumb className="block w-3.5 h-3.5 rounded-full bg-white dark:bg-slate-100 border border-black/10 shadow-md" />
+        </Slider.Root>
+        <div className="flex justify-between font-mono-ui text-[10px] text-slate-400 mt-1">
+          <span>Basic</span>
+          <span>Super Creative</span>
+        </div>
+      </Field>
+
       <Field label="Model Engine">
         <SegmentedToggle
           value={params.model}
@@ -126,26 +143,6 @@ export function SandboxPanel({ params, onChange, onGenerate, isGenerating }: San
           ]}
         />
       </Field>
-
-      <button
-        onClick={onGenerate}
-        disabled={isGenerating}
-        className={clsx(
-          'w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium',
-          'bg-slate-900 text-white dark:bg-white dark:text-slate-900',
-          'transition-opacity disabled:opacity-60'
-        )}
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 size={14} className="animate-spin" /> Generating…
-          </>
-        ) : (
-          <>
-            <Zap size={14} /> Generate
-          </>
-        )}
-      </button>
     </div>
   );
 }

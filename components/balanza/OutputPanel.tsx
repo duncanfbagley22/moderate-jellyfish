@@ -54,7 +54,7 @@ export function OutputPanel({ markdown, isGenerating, isSaved, onSave }: OutputP
         {!isGenerating && !markdown && (
           <div className="h-full flex items-center justify-center text-center px-8">
             <p className="text-sm text-slate-400 dark:text-slate-500">
-              Configure the prompt on the left, then generate to see the response here.
+              Tune the context on the left, describe what you're after below, and generate to see the response here.
             </p>
           </div>
         )}
