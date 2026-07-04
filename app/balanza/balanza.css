@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui;
+  --font-body: 'Inter', ui-sans-serif, system-ui;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --glow-clean-up: 244 63 94;     /* rose-500,  crimson deficit */
+  --glow-maintenance: 245 158 11; /* amber-500, status quo */
+  --glow-growth: 16 185 129;      /* emerald-500, growth */
+  --glow-baseline: 125 211 252;   /* sky-300, the neutral "sea level" */
+
+  --dot-color: 148 163 184; /* slate-400, dot matrix in light mode */
+}
+
+/* This repo's dark mode is prefers-color-scheme-driven (see app/globals.css),
+   not a .dark class toggle — Tailwind v4's default `dark:` variant already
+   matches this, so the token swap below mirrors that same media query rather
+   than a class selector. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dot-color: 51 65 85; /* slate-700, dot matrix in dark mode */
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-ui {
+  font-family: var(--font-mono);
+}
+
+.dot-matrix {
+  background-image: radial-gradient(rgb(var(--dot-color) / 0.85) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.baseline-line {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--glow-baseline) / 0.5) 10%,
+    rgb(var(--glow-baseline) / 0.6) 50%,
+    rgb(var(--glow-baseline) / 0.5) 90%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px 1px rgb(var(--glow-baseline) / 0.35);
+  animation: baseline-pulse 6s ease-in-out infinite;
+}
+
+@keyframes baseline-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .baseline-line { animation: none; }
+}

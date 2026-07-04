@@ -1,0 +1,196 @@
+'use client';
+
+import * as Select from '@radix-ui/react-select';
+import * as ToggleGroup from '@radix-ui/react-toggle-group';
+import * as Slider from '@radix-ui/react-slider';
+import { ChevronDown, Check, Zap, Loader2 } from 'lucide-react';
+import {
+  TIER_FORCE_LABEL,
+  type PromptParams,
+  type Topic,
+  type Timeframe,
+  type Intent,
+  type Platform,
+  type ModelEngine,
+} from '@/lib/balanza/types';
+import { clsx } from '@/lib/balanza/clsx';
+
+interface SandboxPanelProps {
+  params: PromptParams;
+  onChange: (patch: Partial<PromptParams>) => void;
+  onGenerate: () => void;
+  isGenerating: boolean;
+}
+
+const TOPICS: { value: Topic; label: string }[] = [
+  { value: 'work', label: 'Work' },
+  { value: 'exercise', label: 'Exercise' },
+  { value: 'spiritual', label: 'Spiritual' },
+  { value: 'social', label: 'Social' },
+  { value: 'financial', label: 'Financial' },
+  { value: 'creative', label: 'Creative' },
+  { value: 'home', label: 'Home' },
+  { value: 'other', label: 'Other' },
+];
+
+const TIMEFRAMES: { value: Timeframe; label: string }[] = [
+  { value: 'short_term', label: 'Short-Term' },
+  { value: 'long_term', label: 'Long-Term' },
+];
+
+export function SandboxPanel({ params, onChange, onGenerate, isGenerating }: SandboxPanelProps) {
+  return (
+    <div className="space-y-6">
+      <p className="font-mono-ui text-[10px] tracking-widest text-slate-400 uppercase">
+        Brainstorming under · {TIER_FORCE_LABEL[params.tier]}
+      </p>
+
+      <Field label="Topic">
+        <Select.Root value={params.topic} onValueChange={(v) => onChange({ topic: v as Topic })}>
+          <Select.Trigger className="flex w-full items-center justify-between rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur px-3 py-2 text-sm text-slate-800 dark:text-slate-100">
+            <Select.Value />
+            <Select.Icon><ChevronDown size={14} className="opacity-60" /></Select.Icon>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Content className="overflow-hidden rounded-lg border border-black/10 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg shadow-xl z-50">
+              <Select.Viewport className="p-1">
+                {TOPICS.map((t) => (
+                  <Select.Item
+                    key={t.value}
+                    value={t.value}
+                    className="flex items-center justify-between rounded-md px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 outline-none data-highlighted:bg-black/5 dark:data-highlighted:bg-white/10 cursor-pointer"
+                  >
+                    <Select.ItemText>{t.label}</Select.ItemText>
+                    <Select.ItemIndicator><Check size={14} /></Select.ItemIndicator>
+                  </Select.Item>
+                ))}
+              </Select.Viewport>
+            </Select.Content>
+          </Select.Portal>
+        </Select.Root>
+      </Field>
+
+      <Field label="Timeframe">
+        <SegmentedToggle value={params.timeframe} onChange={(v) => onChange({ timeframe: v as Timeframe })} options={TIMEFRAMES} />
+      </Field>
+
+      <Field label="Intent">
+        <SegmentedToggle
+          value={params.intent}
+          onChange={(v) => onChange({ intent: v as Intent })}
+          options={[
+            { value: 'brainstorm', label: 'Brainstorm' },
+            { value: 'blueprint', label: 'Blueprint' },
+          ]}
+        />
+      </Field>
+
+      <Field label="Platform">
+        <SegmentedToggle
+          value={params.platform}
+          onChange={(v) => onChange({ platform: v as Platform })}
+          options={[
+            { value: 'physical', label: 'Physical' },
+            { value: 'code', label: 'Code' },
+            { value: 'spreadsheet', label: 'Spreadsheet' },
+          ]}
+        />
+      </Field>
+
+      <Field label={`Friction — ${params.friction}`}>
+        <Slider.Root
+          className="relative flex items-center w-full h-5"
+          value={[params.friction]}
+          max={100}
+          step={5}
+          onValueChange={([v]) => onChange({ friction: v })}
+        >
+          <Slider.Track className="relative h-1 flex-1 rounded-full bg-black/10 dark:bg-white/10">
+            <Slider.Range className="absolute h-full rounded-full bg-linear-to-r from-sky-400 to-rose-400" />
+          </Slider.Track>
+          <Slider.Thumb className="block w-3.5 h-3.5 rounded-full bg-white dark:bg-slate-100 border border-black/10 shadow-md" />
+        </Slider.Root>
+        <div className="flex justify-between font-mono-ui text-[10px] text-slate-400 mt-1">
+          <span>Low</span>
+          <span>High</span>
+        </div>
+      </Field>
+
+      <Field label="Model Engine">
+        <SegmentedToggle
+          value={params.model}
+          onChange={(v) => onChange({ model: v as ModelEngine })}
+          options={[
+            { value: 'gemini-flash-lite', label: 'Flash Lite' },
+            { value: 'gemini-flash', label: 'Flash' },
+          ]}
+        />
+      </Field>
+
+      <button
+        onClick={onGenerate}
+        disabled={isGenerating}
+        className={clsx(
+          'w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium',
+          'bg-slate-900 text-white dark:bg-white dark:text-slate-900',
+          'transition-opacity disabled:opacity-60'
+        )}
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 size={14} className="animate-spin" /> Generating…
+          </>
+        ) : (
+          <>
+            <Zap size={14} /> Generate
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block font-mono-ui text-[10px] tracking-widest text-slate-500 dark:text-slate-400 mb-1.5 uppercase">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function SegmentedToggle<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <ToggleGroup.Root
+      type="single"
+      value={value}
+      onValueChange={(v) => v && onChange(v as T)}
+      className="flex rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur p-1 gap-1"
+    >
+      {options.map((opt) => (
+        <ToggleGroup.Item
+          key={opt.value}
+          value={opt.value}
+          className={clsx(
+            'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+            'text-slate-500 dark:text-slate-400',
+            'data-[state=on]:bg-slate-900 data-[state=on]:text-white',
+            'dark:data-[state=on]:bg-white dark:data-[state=on]:text-slate-900'
+          )}
+        >
+          {opt.label}
+        </ToggleGroup.Item>
+      ))}
+    </ToggleGroup.Root>
+  );
+}
