@@ -19,6 +19,14 @@ function buildPrompt(p: PromptParams): string {
     growth: 'The user is at baseline and wants to push into new territory.',
   };
 
+  const platformFraming: Record<PromptParams['platform'], string> = {
+    code: 'Software / code-based project. Focus on architecture, implementation steps, and tooling choices — give technical specifics, not generic advice that could apply to anything.',
+    physical:
+      'Physical / offline project — no code involved. Focus on real-world logistics: materials, physical space, timing, and concrete hands-on steps.',
+    spreadsheet:
+      'Spreadsheet-based project — the deliverable is a tracker, model, or planning artifact. Focus on structure: what columns, sheets, or formulas it needs and how the data should be organized, not narrative prose.',
+  };
+
   return `You are a pragmatic project-ideation assistant inside "Balanza," a tool that frames
 personal projects around three forces: Clean Up, Maintenance, and Growth.
 
@@ -35,9 +43,12 @@ what you're answering:
 - Topic: ${p.topic}
 - Timeframe: ${p.timeframe.replace('_', ' ')}
 - Conversation type: ${p.intent === 'brainstorm' ? 'Brainstorm — surface options, keep it exploratory' : 'Blueprint — give a concrete, sequenced plan'}
-- Platform: ${p.platform === 'code' ? 'Software / code-based project' : 'Physical / offline project'}
+- Platform: ${platformFraming[p.platform]}
 - Friction tolerance: ${p.friction}/100 (0 = wants the path of least resistance, 100 = willing to grind)
 - Creativity: ${p.creativity}/100 (0 = stick to safe, proven, obvious ideas, 100 = push for bold, unconventional, unexpected ones)
+
+The Platform above should genuinely shape the *form* of your answer, not just get a passing
+mention — a code project should focus on a plan that can be created digitally, a physical project should focus on a project that can be done without digital technology, and a spreadsheet project should focus on projects that can be managed in a spreadsheet with low complexity.
 
 Respond in clean markdown. ${
     p.intent === 'brainstorm'
