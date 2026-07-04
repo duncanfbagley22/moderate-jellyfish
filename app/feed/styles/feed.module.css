@@ -86,6 +86,51 @@
   color: #1a1a1a;
 }
 
+/* Tailwind's Preflight reset zeroes out default margins on p/ul/ol/h1-6/etc.
+   globally, which otherwise makes ReactMarkdown's separate <p> tags render
+   flush against each other with no visible break. Restore spacing here. */
+.modalBody p,
+.modalBody ul,
+.modalBody ol,
+.modalBody blockquote,
+.modalBody h1,
+.modalBody h2,
+.modalBody h3,
+.modalBody h4 {
+  margin-bottom: 1.1em;
+}
+
+.modalBody > *:last-child {
+  margin-bottom: 0;
+}
+
+.modalBody ul,
+.modalBody ol {
+  padding-left: 1.4em;
+}
+
+.modalBody li {
+  margin-bottom: 0.4em;
+}
+
+.modalBody a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.modalBody img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}
+
+.modalBody blockquote {
+  border-left: 3px solid #1a1a1a;
+  padding-left: 1em;
+  font-style: italic;
+  color: #555;
+}
+
 .modalFooter {
   padding: 1rem 1.5rem;
   border-top: 1px solid #1a1a1a;
