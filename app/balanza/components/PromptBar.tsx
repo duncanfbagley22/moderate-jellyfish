@@ -3,7 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { GlassCard } from './GlassCard';
-import { clsx } from '@/lib/balanza/clsx';
+import { clsx } from '@/app/balanza/lib/clsx';
 
 interface PromptBarProps {
   value: string;

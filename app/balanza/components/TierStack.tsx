@@ -1,7 +1,7 @@
 'use client';
 
 import { GlassCard } from './GlassCard';
-import { TIER_STATE_LABEL, TIER_SUMMARY, type Tier } from '@/lib/balanza/types';
+import { TIER_STATE_LABEL, TIER_SUMMARY, type Tier } from '@/app/balanza/lib/types';
 
 interface TierStackProps {
   selected: Tier;
