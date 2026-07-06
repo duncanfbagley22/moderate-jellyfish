@@ -163,13 +163,10 @@ export default function SpringboardApp() {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <BackHome className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white/70 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100">
+          <BackHome className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200/80 bg-white/70 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100">
             <ArrowLeft size={16} />
             Back to Main
           </BackHome>
-          <span className="font-mono-ui text-[10px] tracking-widest text-slate-400 uppercase">
-            Project Guidance Tool
-          </span>
         </div>
       </header>
 
