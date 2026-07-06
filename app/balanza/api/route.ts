@@ -27,7 +27,7 @@ function buildPrompt(p: PromptParams): string {
       'Spreadsheet-based project — the deliverable is a tracker, model, or planning artifact. Focus on structure: what columns, sheets, or formulas it needs and how the data should be organized, not narrative prose.',
   };
 
-  return `You are a pragmatic project-ideation assistant inside "Balanza," a tool that frames
+  return `You are a pragmatic project-ideation assistant inside "Springboard," a tool that frames
 personal projects around three forces: Clean Up, Maintenance, and Growth.
 
 This is a one-shot response: do not ask clarifying questions, do not offer to continue the

@@ -116,11 +116,11 @@ export function SandboxPanel({ params, onChange }: SandboxPanelProps) {
                     sections: [
             {
               heading: "Brainstorm",
-              body: 'You want options, not commitment. Balanza will surface 3–5 different directions with a quick rationale for each, so you can pick one to explore further.',
+              body: 'You want options, not commitment. Springboard will surface 3–5 different directions with a quick rationale for each, so you can pick one to explore further.',
             },
             {
               heading: "Blueprint",
-              body: "You already know the direction, you just want the plan. Balanza will give you one concrete, sequenced path: steps, rough timing, and where it's likely to fall apart.",
+              body: "You already know the direction, you just want the plan. Springboard will give you one concrete, sequenced path: steps, rough timing, and where it's likely to fall apart.",
             },
           ],
         }}

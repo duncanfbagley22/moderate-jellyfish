@@ -26,7 +26,7 @@ export default function Home() {
           😴 Sleep Tracker
         </Link>
         <Link href="/balanza" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
-          ⚖️ Balanza
+          🚀 Springboard
         </Link>
       </nav>
     </div>

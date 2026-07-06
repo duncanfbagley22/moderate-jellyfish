@@ -138,13 +138,13 @@ export default function BalanzaApp() {
           )}
           <div className="flex items-center gap-1.5">
             <h1 className="font-display text-lg font-semibold tracking-tight">
-              Balanza
+              Springboard
             </h1>
             <InfoButton
-              title="Balanza"
+              title="Springboard"
               sections={[
                 {
-                  body: "Balanza is a tool to help brainstorm potential ideas. The tool treats life through the perspective of a system with three key areas: Deficit, Status Quo, and Growth. Each area acts upon the others. Select the area that matches where you're at on a given front, then describe what's on your mind and set the parameters, and it'll shape a response around that area to guide your thinking and planning.",
+                  body: "Springboard is a tool to help brainstorm potential ideas. The tool treats life through the perspective of a system with three key areas: Deficit, Status Quo, and Growth. Each area acts upon the others. Select the area that matches where you're at on a given front, then describe what's on your mind and set the parameters, and it'll shape a response around that area to guide your thinking and planning.",
                 },
                 {
                   heading: "Deficit",
