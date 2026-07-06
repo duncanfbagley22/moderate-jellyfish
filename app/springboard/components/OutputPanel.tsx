@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Check, Save, Sparkles } from 'lucide-react';
 import { GlassCard } from './GlassCard';
-import { clsx } from '@/app/balanza/lib/clsx';
+import { clsx } from '@/app/springboard/lib/clsx';
 import {
   TIER_FORCE_LABEL,
   TOPIC_LABEL,
@@ -13,7 +13,7 @@ import {
   PLATFORM_LABEL,
   type Tier,
   type PromptParams,
-} from '@/app/balanza/lib/types';
+} from '@/app/springboard/lib/types';
 
 // The subset of PromptParams worth showing as pills once a response comes
 // back — excludes `model` and `userPrompt` per design (free text doesn't

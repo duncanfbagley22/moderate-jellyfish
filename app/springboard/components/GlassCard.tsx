@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import { forwardRef, useState, type ReactNode } from 'react';
-import type { Tier } from '@/app/balanza/lib/types';
-import { clsx } from '@/app/balanza/lib/clsx';
+import type { Tier } from '@/app/springboard/lib/types';
+import { clsx } from '@/app/springboard/lib/clsx';
 
 type GlowVariant = Tier | 'neutral';
 

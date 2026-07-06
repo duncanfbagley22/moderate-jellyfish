@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { PromptParams } from '@/app/balanza/lib/types';
+import type { PromptParams } from '@/app/springboard/lib/types';
 
 // Matches the naming convention already used in scripts/article_feed/summarize.ts
 // (gemini-3.1-flash-lite). Verify these model ids are still current against

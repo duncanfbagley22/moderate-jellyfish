@@ -25,7 +25,7 @@ export default function Home() {
         <Link href="/sleep" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
           😴 Sleep Tracker
         </Link>
-        <Link href="/balanza" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
+        <Link href="/springboard" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
           🚀 Springboard
         </Link>
       </nav>

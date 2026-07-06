@@ -12,9 +12,9 @@ import {
   type Intent,
   type Platform,
   type ModelEngine,
-} from "@/app/balanza/lib/types";
-import { clsx } from "@/app/balanza/lib/clsx";
-import { InfoButton } from "@/app/balanza/components/InfoButton";
+} from "@/app/springboard/lib/types";
+import { clsx } from "@/app/springboard/lib/clsx";
+import { InfoButton } from "@/app/springboard/components/InfoButton";
 
 interface SandboxPanelProps {
   params: PromptParams;

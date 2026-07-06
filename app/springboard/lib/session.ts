@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'balanza:session_id';
+const STORAGE_KEY = 'springboard:session_id';
 
 export function getSessionId(): string {
   if (typeof window === 'undefined') return 'server';

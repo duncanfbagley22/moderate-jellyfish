@@ -3,18 +3,18 @@
 import { useState, useCallback } from "react";
 import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import { FlowchartView } from "@/app/balanza/components/FlowchartView";
-import { TierStack } from "@/app/balanza/components/TierStack";
-import { SandboxPanel } from "@/app/balanza/components/SandboxPanel";
-import { OutputPanel } from "@/app/balanza/components/OutputPanel";
-import { PromptBar } from "@/app/balanza/components/PromptBar";
-import { Baseline } from "@/app/balanza/components/Baseline";
-import { clsx } from "@/app/balanza/lib/clsx";
-import { generateBlueprint } from "@/app/balanza/lib/gemini";
-import { getSessionId } from "@/app/balanza/lib/session";
+import { FlowchartView } from "@/app/springboard/components/FlowchartView";
+import { TierStack } from "@/app/springboard/components/TierStack";
+import { SandboxPanel } from "@/app/springboard/components/SandboxPanel";
+import { OutputPanel } from "@/app/springboard/components/OutputPanel";
+import { PromptBar } from "@/app/springboard/components/PromptBar";
+import { Baseline } from "@/app/springboard/components/Baseline";
+import { clsx } from "@/app/springboard/lib/clsx";
+import { generateBlueprint } from "@/app/springboard/lib/gemini";
+import { getSessionId } from "@/app/springboard/lib/session";
 import { createClient } from "@/lib/supabase/client";
-import type { PromptParams, Tier } from "@/app/balanza/lib/types";
-import { InfoButton } from "@/app/balanza/components/InfoButton";
+import type { PromptParams, Tier } from "@/app/springboard/lib/types";
+import { InfoButton } from "@/app/springboard/components/InfoButton";
 import BackHome from "@/components/BackHome";
 
 type AppState = "flowchart" | "sandbox";
@@ -29,7 +29,7 @@ const DEFAULT_PARAMS: Omit<PromptParams, "tier" | "userPrompt"> = {
   model: "gemini-flash-lite",
 };
 
-export default function BalanzaApp() {
+export default function SpringboardApp() {
   const [view, setView] = useState<AppState>("flowchart");
   const [selectedTier, setSelectedTier] = useState<Tier>("maintenance");
   const [params, setParams] =

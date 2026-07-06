@@ -3,7 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { GlassCard } from './GlassCard';
-import { clsx } from '@/app/balanza/lib/clsx';
+import { clsx } from '@/app/springboard/lib/clsx';
 
 interface PromptBarProps {
   value: string;
@@ -16,7 +16,7 @@ interface PromptBarProps {
  * Chat-style input pinned to the output area: an auto-growing textarea (à la
  * Claude/ChatGPT) paired with the generate action. The user's text here is
  * the primary instruction the Gemini prompt is built around — see
- * buildPrompt() in app/api/balanza/generate/route.ts.
+ * buildPrompt() in app/api/springboard/generate/route.ts.
  */
 export function PromptBar({ value, onChange, onSubmit, isGenerating }: PromptBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);

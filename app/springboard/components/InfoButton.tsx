@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Info, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { Tier } from '@/app/balanza/lib/types';
-import { clsx } from '@/app/balanza/lib/clsx';
+import type { Tier } from '@/app/springboard/lib/types';
+import { clsx } from '@/app/springboard/lib/clsx';
 
 type GlowVariant = Tier | 'neutral';
 
