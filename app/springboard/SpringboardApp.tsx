@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { FlowchartView } from "@/app/springboard/components/FlowchartView";
 import { TierStack } from "@/app/springboard/components/TierStack";
 import { SandboxPanel } from "@/app/springboard/components/SandboxPanel";
@@ -56,6 +56,17 @@ export default function SpringboardApp() {
     | "friction"
     | "creativity"
   > | null>(null);
+
+  const handleReset = useCallback(() => {
+    setSelectedTier("maintenance");
+    setParams(DEFAULT_PARAMS);
+    setMarkdown(null);
+    setIsGenerating(false);
+    setIsSaved(false);
+    setPromptText("");
+    setLastPrompt("");
+    setLastParams(null);
+  }, []);
 
   const handleSelectTierFromFlowchart = useCallback((tier: Tier) => {
     setSelectedTier(tier);
@@ -163,6 +174,14 @@ export default function SpringboardApp() {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200/80 bg-white/70 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+          >
+            <RotateCcw size={14} />
+            Reset
+          </button>
           <BackHome className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200/80 bg-white/70 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100">
             <ArrowLeft size={16} />
             Back to Main
