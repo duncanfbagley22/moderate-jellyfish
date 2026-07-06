@@ -148,7 +148,7 @@ export default function SleepTracker() {
     return loadUiState().calOffset;
   });
   const [activeTab, setActiveTab] = useState<Tab>("log");
-  const [logDate, setLogDate] = useState(() => dateAdd(defaultLogDate(), -1));
+  const [logDate, setLogDate] = useState(() => dateAdd(defaultLogDate(), 0));
   const logDateInvalid = logDate >= todayDate();
   const [inpSleep, setInpSleep] = useState("23:00");
   const [inpWake, setInpWake] = useState("07:00");
