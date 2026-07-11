@@ -46,7 +46,7 @@ export function RulesModal({ game, onClose }: RulesModalProps) {
                 <span className={CHIP}>⏱ {game.time_estimate_mins} min</span>
                 {game.platform.map((p) => (
                   <span key={p} className={CHIP}>
-                    {p === "physical" ? "🎲 Physical" : "💻 Digital"}
+                    {p === "face cards" ? "🂡 Face Cards" : "✏️ Pen & Paper"}
                   </span>
                 ))}
               </div>
