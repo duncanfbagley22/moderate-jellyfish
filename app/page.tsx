@@ -28,6 +28,9 @@ export default function Home() {
         <Link href="/springboard" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
           🚀 Springboard
         </Link>
+        <Link href="/flush" style={{ fontSize: '1.1rem', color: '#1a1a1a' }}>
+          🎲 Flush
+        </Link>
       </nav>
     </div>
   )
