@@ -23,8 +23,10 @@ export interface Game {
 }
 
 export interface GameFilters {
-  minPlayers: number;
-  maxPlayers: number;
+  // How many people you actually have — a single headcount, not a range.
+  // A game matches when this falls within that game's own
+  // [min_players, max_players] range.
+  players: number;
   timeAvailableMins: number;
   platform: PlatformFilter;
 }

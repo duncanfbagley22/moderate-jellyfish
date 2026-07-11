@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { Game } from "../lib/types";
 import { GameCard } from "./GameCard";
-import { BUTTON_BASE, RAISED } from "../lib/win95";
+import { BUTTON_BASE, RAISED, CARD_BACK_BACKGROUND } from "../lib/win95";
 import { shuffleArray } from "../lib/shuffle";
 
 type GameDeckProps = {
@@ -12,19 +12,24 @@ type GameDeckProps = {
   onSelect: (game: Game) => void;
 };
 
-// Duration of the riffle animation before the newly-shuffled card is
-// revealed. Kept short and tween-based (no physics) per the project's
-// mobile-performance constraint.
+// Duration of the riffle-shuffle animation (new filter results / Shuffle
+// button) before the newly-shuffled card is revealed.
 const SHUFFLE_MS = 550;
+// Duration of the next/prev flip transition.
+const FLIP_MS = 380;
 
 export function GameDeck({ games, onSelect }: GameDeckProps) {
   const [order, setOrder] = useState<Game[]>(() => shuffleArray(games));
   const [activeIndex, setActiveIndex] = useState(0);
   const [isShuffling, setIsShuffling] = useState(false);
+  const [flipTarget, setFlipTarget] = useState<{ game: Game; index: number } | null>(null);
+
+  const isBusy = isShuffling || flipTarget !== null;
 
   // Re-shuffle (with the riffle animation) whenever a new filter submit
   // brings back a new result set.
   useEffect(() => {
+    setFlipTarget(null);
     setIsShuffling(true);
     const t = setTimeout(() => {
       setOrder(shuffleArray(games));
@@ -41,7 +46,7 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
   const peekCount = Math.min(2, order.length - 1);
 
   function handleShuffle() {
-    if (isShuffling) return;
+    if (isBusy) return;
     setIsShuffling(true);
     setTimeout(() => {
       setOrder((prev) => shuffleArray(prev));
@@ -50,35 +55,54 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
     }, SHUFFLE_MS);
   }
 
+  // The current front card slides back into the stack while the next card
+  // in line flips face-up to take its place.
+  function goTo(nextIndex: number) {
+    if (isBusy || order.length < 2) return;
+    setFlipTarget({ game: order[nextIndex], index: nextIndex });
+    setTimeout(() => {
+      setActiveIndex(nextIndex);
+      setFlipTarget(null);
+    }, FLIP_MS);
+  }
+
   function handleNext() {
-    setActiveIndex((i) => (i + 1) % order.length);
+    goTo((activeIndex + 1) % order.length);
   }
 
   function handlePrev() {
-    setActiveIndex((i) => (i - 1 + order.length) % order.length);
+    goTo((activeIndex - 1 + order.length) % order.length);
   }
 
   return (
     <div
-      className="flex flex-col items-center gap-4 w-full rounded-3xl p-4 sm:p-6"
+      className="flex flex-col items-center justify-center gap-3 w-full h-full min-h-0 rounded-3xl p-3 sm:p-4"
       style={{
         background: "radial-gradient(ellipse at 50% 20%, #1c8a44, #0d5228 75%)",
       }}
     >
+      {/* Fixed 5:7 portrait box — height comes from the flex-allocated
+          space above, width is derived from the aspect ratio and capped
+          at 100%, so the card is always portrait no matter the viewport
+          shape (phone, iPad, wide desktop). */}
       <div
-        className="relative w-full max-w-sm flex items-center justify-center"
-        style={{ minHeight: 300 }}
+        className="relative w-full flex-1 min-h-0 flex items-center justify-center"
+        style={{ perspective: 1200 }}
       >
-        {isShuffling ? (
-          // Riffle: a handful of card-back rectangles jitter/rotate in
-          // place for SHUFFLE_MS, then the real deck re-mounts below.
-          // Framer Motion's `animate` keyframe-array syntax — a plain
-          // tween, no spring physics, cheap on mobile.
-          <div className="relative w-full max-w-[220px]" style={{ height: 280 }}>
-            {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          className="relative"
+          style={{ height: "100%", maxWidth: "100%", aspectRatio: "5 / 7" }}
+        >
+          {isShuffling ? (
+            // Riffle: a handful of card-backs jitter/rotate in place for
+            // SHUFFLE_MS, then the real deck re-mounts. A plain tween via
+            // Framer Motion's keyframe-array syntax — no spring physics,
+            // cheap on mobile.
+            Array.from({ length: 5 }).map((_, i) => (
               <motion.div
                 key={i}
-                className="absolute inset-0 rounded-2xl bg-white p-2 shadow-lg"
+                className="absolute inset-0 rounded-2xl border-4 border-white shadow-lg"
+                style={{ ...CARD_BACK_BACKGROUND, zIndex: i }}
                 initial={{ x: 0, rotate: 0 }}
                 animate={{
                   x: [0, -22, 18, -12, 0],
@@ -89,69 +113,91 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
                   ease: "easeInOut",
                   delay: i * 0.03,
                 }}
-                style={{ zIndex: i }}
+              />
+            ))
+          ) : flipTarget ? (
+            <>
+              {/* Outgoing card slides back into the stack. */}
+              <motion.div
+                key={`out-${active.id}`}
+                className="absolute inset-0"
+                style={{ zIndex: 1 }}
+                initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+                animate={{ x: 10, y: 14, scale: 0.92, opacity: 0 }}
+                transition={{ duration: FLIP_MS / 1000, ease: "easeInOut" }}
+              >
+                <GameCard game={active} onClick={() => {}} />
+              </motion.div>
+
+              {/* Incoming card flips face-up: a standard two-sided flip —
+                  card-back and card-face are separate absolutely
+                  positioned layers with backfaceVisibility hidden, and the
+                  shared parent rotates from 180deg (showing the back) to
+                  0deg (showing the face). Still just a rotateY tween. */}
+              <motion.div
+                key={`in-${flipTarget.game.id}`}
+                className="absolute inset-0"
+                style={{ zIndex: 2, transformStyle: "preserve-3d" }}
+                initial={{ rotateY: 180 }}
+                animate={{ rotateY: 0 }}
+                transition={{ duration: FLIP_MS / 1000, ease: "easeInOut", delay: 0.05 }}
               >
                 <div
-                  className="w-full h-full rounded-xl"
+                  className="absolute inset-0 rounded-2xl border-4 border-white shadow-lg"
                   style={{
-                    background:
-                      "repeating-linear-gradient(45deg, #1a3f8f 0 8px, #16307a 8px 16px)",
+                    ...CARD_BACK_BACKGROUND,
+                    backfaceVisibility: "hidden",
+                    transform: "rotateY(180deg)",
                   }}
                 />
+                <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
+                  <GameCard game={flipTarget.game} onClick={() => {}} />
+                </div>
               </motion.div>
-            ))}
-          </div>
-        ) : (
-          <>
-            {/* Peeking cards behind the active card give the "deck" look
-                without rendering or animating the full stack. */}
-            {Array.from({ length: peekCount }).map((_, i) => (
-              <div
-                key={i}
-                aria-hidden
-                className="absolute w-full max-w-sm h-64 sm:h-72 rounded-2xl bg-white/70 shadow-md"
-                style={{
-                  transform: `translate(${(i + 1) * 6}px, ${(i + 1) * 6}px)`,
-                  zIndex: i,
-                }}
-              />
-            ))}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={active.id}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.18 }}
-                className="relative w-full"
-                style={{ zIndex: peekCount + 1 }}
-              >
+            </>
+          ) : (
+            <>
+              {/* Peeking card-backs behind the active card give the "deck"
+                  look without rendering or animating the full stack. */}
+              {Array.from({ length: peekCount }).map((_, i) => (
+                <div
+                  key={i}
+                  aria-hidden
+                  className="absolute inset-0 rounded-2xl border-4 border-white shadow-md"
+                  style={{
+                    ...CARD_BACK_BACKGROUND,
+                    transform: `translate(${(i + 1) * 6}px, ${(i + 1) * 6}px)`,
+                    zIndex: i,
+                  }}
+                />
+              ))}
+              <div className="absolute inset-0" style={{ zIndex: peekCount + 1 }}>
                 <GameCard game={active} onClick={() => onSelect(active)} />
-              </motion.div>
-            </AnimatePresence>
-          </>
-        )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className={`${RAISED} flex items-center gap-2 px-3 py-2`}>
+      <div className={`${RAISED} shrink-0 flex items-center gap-2 px-3 py-2`}>
         <button
           type="button"
           onClick={handlePrev}
           className={BUTTON_BASE}
           aria-label="Previous game"
-          disabled={isShuffling}
+          disabled={isBusy}
         >
           ◀
         </button>
         <span className="text-xs font-bold text-black px-2 min-w-[52px] text-center">
-          {isShuffling ? "···" : `${activeIndex + 1} / ${order.length}`}
+          {isBusy ? "···" : `${activeIndex + 1} / ${order.length}`}
         </span>
         <button
           type="button"
           onClick={handleNext}
           className={BUTTON_BASE}
           aria-label="Next game"
-          disabled={isShuffling}
+          disabled={isBusy}
         >
           ▶
         </button>
@@ -159,7 +205,7 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
           type="button"
           onClick={handleShuffle}
           className={BUTTON_BASE}
-          disabled={isShuffling}
+          disabled={isBusy}
         >
           {isShuffling ? "Shuffling…" : "🔀 Shuffle"}
         </button>

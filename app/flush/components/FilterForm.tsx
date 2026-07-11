@@ -2,13 +2,11 @@
 
 import type { GameFilters, PlatformFilter } from "../lib/types";
 import { PLATFORM_VALUES, PLATFORM_LABELS } from "../lib/types";
-import { RAISED, SUNKEN_THIN, BUTTON_BASE } from "../lib/win95";
+import { RAISED, SUNKEN_THIN } from "../lib/win95";
 
 type FilterFormProps = {
   filters: GameFilters;
   onChange: (patch: Partial<GameFilters>) => void;
-  onSubmit: () => void;
-  isLoading: boolean;
 };
 
 const PLATFORM_OPTIONS: { value: PlatformFilter; label: string }[] = [
@@ -16,91 +14,57 @@ const PLATFORM_OPTIONS: { value: PlatformFilter; label: string }[] = [
   ...PLATFORM_VALUES.map((p) => ({ value: p as PlatformFilter, label: PLATFORM_LABELS[p] })),
 ];
 
-export function FilterForm({
-  filters,
-  onChange,
-  onSubmit,
-  isLoading,
-}: FilterFormProps) {
+const MINUTES_STEP = 5;
+
+// A single compact row (wraps on narrow screens). No submit button — every
+// change here auto-applies (debounced) from the parent, so there's just
+// one "new hand" trigger in the whole app: the Shuffle button.
+export function FilterForm({ filters, onChange }: FilterFormProps) {
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-      className={`${RAISED} p-3 sm:p-4 flex flex-col gap-3 text-black`}
-    >
-      <fieldset className={`${SUNKEN_THIN} p-3 flex flex-col gap-3`}>
-        <legend className="px-1 text-xs font-bold bg-[#c0c0c0]">
-          Group Size
-        </legend>
-        <div className="flex items-center gap-3">
-          <label className="flex-1 flex flex-col gap-1 text-xs font-bold">
-            Min Players
-            <input
-              type="number"
-              min={1}
-              max={99}
-              inputMode="numeric"
-              value={filters.minPlayers}
-              onChange={(e) =>
-                onChange({
-                  minPlayers: Math.max(1, Number(e.target.value) || 1),
-                })
-              }
-              className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
-            />
-          </label>
-          <label className="flex-1 flex flex-col gap-1 text-xs font-bold">
-            Max Players
-            <input
-              type="number"
-              min={1}
-              max={99}
-              inputMode="numeric"
-              value={filters.maxPlayers}
-              onChange={(e) =>
-                onChange({
-                  maxPlayers: Math.max(1, Number(e.target.value) || 1),
-                })
-              }
-              className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
-            />
-          </label>
-        </div>
-      </fieldset>
+    <div className={`${RAISED} p-2 flex flex-wrap items-end gap-2 text-black`}>
+      <label className="flex flex-col gap-0.5 text-[10px] font-bold">
+        Players
+        <input
+          type="number"
+          min={1}
+          max={99}
+          inputMode="numeric"
+          value={filters.players}
+          onChange={(e) =>
+            onChange({ players: Math.max(1, Number(e.target.value) || 1) })
+          }
+          className={`${SUNKEN_THIN} px-2 py-1 text-sm w-16 touch-manipulation`}
+        />
+      </label>
 
-      <fieldset className={`${SUNKEN_THIN} p-3 flex flex-col gap-2`}>
-        <legend className="px-1 text-xs font-bold bg-[#c0c0c0]">
-          Time Available
-        </legend>
-        <label className="flex flex-col gap-1 text-xs font-bold">
-          Minutes
-          <input
-            type="number"
-            min={1}
-            max={999}
-            inputMode="numeric"
-            value={filters.timeAvailableMins}
-            onChange={(e) =>
-              onChange({
-                timeAvailableMins: Math.max(1, Number(e.target.value) || 1),
-              })
-            }
-            className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
-          />
-        </label>
-      </fieldset>
+      <label className="flex flex-col gap-0.5 text-[10px] font-bold">
+        Minutes
+        <input
+          type="number"
+          min={MINUTES_STEP}
+          max={999}
+          step={MINUTES_STEP}
+          inputMode="numeric"
+          value={filters.timeAvailableMins}
+          onChange={(e) => {
+            const raw = Number(e.target.value) || MINUTES_STEP;
+            const snapped = Math.max(
+              MINUTES_STEP,
+              Math.round(raw / MINUTES_STEP) * MINUTES_STEP,
+            );
+            onChange({ timeAvailableMins: snapped });
+          }}
+          className={`${SUNKEN_THIN} px-2 py-1 text-sm w-16 touch-manipulation`}
+        />
+      </label>
 
-      <fieldset className={`${SUNKEN_THIN} p-3 flex flex-col gap-2`}>
-        <legend className="px-1 text-xs font-bold bg-[#c0c0c0]">
-          Platform
-        </legend>
-        <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-0.5 text-[10px] font-bold flex-1 min-w-37.5">
+        Platform
+        <div className="flex flex-wrap gap-2 py-0.5">
           {PLATFORM_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-1.5 text-xs font-bold touch-manipulation"
+              className="flex items-center gap-1 text-[11px] font-bold touch-manipulation"
             >
               <input
                 type="radio"
@@ -108,17 +72,13 @@ export function FilterForm({
                 value={opt.value}
                 checked={filters.platform === opt.value}
                 onChange={() => onChange({ platform: opt.value })}
-                className="w-4 h-4"
+                className="w-3.5 h-3.5"
               />
               {opt.label}
             </label>
           ))}
         </div>
-      </fieldset>
-
-      <button type="submit" disabled={isLoading} className={`${BUTTON_BASE} mt-1`}>
-        {isLoading ? "Shuffling..." : "🔀 Shuffle & Deal!"}
-      </button>
-    </form>
+      </div>
+    </div>
   );
 }

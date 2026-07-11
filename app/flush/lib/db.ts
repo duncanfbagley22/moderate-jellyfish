@@ -2,13 +2,11 @@ import { createClient } from "@/lib/supabase/client";
 import type { Game, GameFilters } from "./types";
 
 /**
- * Fetches games whose [min_players, max_players] range overlaps the
- * requested group-size range, that fit within the available time, and
- * (optionally) support the requested platform.
+ * Fetches games that fit the given player count, fit within the available
+ * time, and (optionally) support the requested platform.
  *
- * Range-overlap logic: a game qualifies if its min_players is at or below
- * our max, AND its max_players is at or above our min — i.e. the two
- * ranges intersect rather than requiring an exact match.
+ * A game qualifies when `filters.players` falls within that game's own
+ * [min_players, max_players] range.
  */
 export async function fetchGames(filters: GameFilters): Promise<Game[]> {
   const supabase = createClient();
@@ -18,8 +16,8 @@ export async function fetchGames(filters: GameFilters): Promise<Game[]> {
     .select(
       "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long",
     )
-    .lte("min_players", filters.maxPlayers)
-    .gte("max_players", filters.minPlayers)
+    .lte("min_players", filters.players)
+    .gte("max_players", filters.players)
     .lte("time_estimate_mins", filters.timeAvailableMins);
 
   if (filters.platform !== "either") {
