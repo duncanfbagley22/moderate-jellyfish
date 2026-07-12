@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
 import type { Game } from "../lib/types";
 import { GameCard } from "./GameCard";
 import { BUTTON_BASE, RAISED, CARD_BACK_BACKGROUND } from "../lib/win95";
@@ -12,24 +12,37 @@ type GameDeckProps = {
   onSelect: (game: Game) => void;
 };
 
-// Duration of the riffle-shuffle animation (new filter results / Shuffle
+// Duration the shuffling spinner is shown for (new filter results / Shuffle
 // button) before the newly-shuffled card is revealed.
 const SHUFFLE_MS = 550;
-// Duration of the next/prev flip transition.
-const FLIP_MS = 380;
+// Drag distance (px) or flick velocity (px/s) past which a release counts
+// as a swipe rather than snapping back to center.
+const SWIPE_DISTANCE_THRESHOLD = 100;
+const SWIPE_VELOCITY_THRESHOLD = 500;
+// How long the released card takes to leave the screen once a swipe (or
+// the Prev/Next button, which triggers the same motion) commits to it.
+const FLY_OUT_MS = 250;
 
 export function GameDeck({ games, onSelect }: GameDeckProps) {
   const [order, setOrder] = useState<Game[]>(() => shuffleArray(games));
   const [activeIndex, setActiveIndex] = useState(0);
   const [isShuffling, setIsShuffling] = useState(false);
-  const [flipTarget, setFlipTarget] = useState<{ game: Game; index: number } | null>(null);
+  const [isFlinging, setIsFlinging] = useState(false);
+  const wasDragged = useRef(false);
 
-  const isBusy = isShuffling || flipTarget !== null;
+  // Drives the top card's horizontal position while dragging and during
+  // the programmatic fly-out; rotate is derived from it so the card tilts
+  // like a flicked photo instead of translating in a straight line.
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-300, 0, 300], [-12, 0, 12]);
 
-  // Re-shuffle (with the riffle animation) whenever a new filter submit
-  // brings back a new result set.
+  const isBusy = isShuffling || isFlinging;
+
+  // Re-shuffle (showing the spinner) whenever a new filter submit brings
+  // back a new result set.
   useEffect(() => {
-    setFlipTarget(null);
+    setIsFlinging(false);
+    x.set(0);
     setIsShuffling(true);
     const t = setTimeout(() => {
       setOrder(shuffleArray(games));
@@ -47,6 +60,7 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
 
   function handleShuffle() {
     if (isBusy) return;
+    x.set(0);
     setIsShuffling(true);
     setTimeout(() => {
       setOrder((prev) => shuffleArray(prev));
@@ -55,23 +69,45 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
     }, SHUFFLE_MS);
   }
 
-  // The current front card slides back into the stack while the next card
-  // in line flips face-up to take its place.
-  function goTo(nextIndex: number) {
+  // Sends the active card flying off in `direction` (-1 = off to the
+  // left / advance to next, 1 = off to the right / back to previous),
+  // then swaps in the new active card once it's off-screen. Used by both
+  // the drag-release swipe and the Prev/Next buttons, so the motion is
+  // identical either way.
+  function flingOut(direction: 1 | -1) {
     if (isBusy || order.length < 2) return;
-    setFlipTarget({ game: order[nextIndex], index: nextIndex });
-    setTimeout(() => {
-      setActiveIndex(nextIndex);
-      setFlipTarget(null);
-    }, FLIP_MS);
+    setIsFlinging(true);
+    animate(x, direction * 500, {
+      duration: FLY_OUT_MS / 1000,
+      ease: "easeIn",
+      onComplete: () => {
+        setActiveIndex((i) =>
+          direction === -1 ? (i + 1) % order.length : (i - 1 + order.length) % order.length,
+        );
+        x.set(0);
+        setIsFlinging(false);
+      },
+    });
+  }
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    if (isBusy) return;
+    if (info.offset.x < -SWIPE_DISTANCE_THRESHOLD || info.velocity.x < -SWIPE_VELOCITY_THRESHOLD) {
+      flingOut(-1);
+    } else if (info.offset.x > SWIPE_DISTANCE_THRESHOLD || info.velocity.x > SWIPE_VELOCITY_THRESHOLD) {
+      flingOut(1);
+    }
+    // Otherwise: released within the swipe threshold. dragConstraints is
+    // pinned to {left:0, right:0}, so Motion's own elastic spring snaps
+    // the card back to center — no extra code needed.
   }
 
   function handleNext() {
-    goTo((activeIndex + 1) % order.length);
+    flingOut(-1);
   }
 
   function handlePrev() {
-    goTo((activeIndex - 1 + order.length) % order.length);
+    flingOut(1);
   }
 
   return (
@@ -94,67 +130,17 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
           style={{ height: "100%", maxWidth: "100%", aspectRatio: "5 / 7" }}
         >
           {isShuffling ? (
-            // Riffle: a handful of card-backs jitter/rotate in place for
-            // SHUFFLE_MS, then the real deck re-mounts. A plain tween via
-            // Framer Motion's keyframe-array syntax — no spring physics,
-            // cheap on mobile.
-            Array.from({ length: 5 }).map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute inset-0 rounded-2xl border-4 border-white shadow-lg"
-                style={{ ...CARD_BACK_BACKGROUND, zIndex: i }}
-                initial={{ x: 0, rotate: 0 }}
-                animate={{
-                  x: [0, -22, 18, -12, 0],
-                  rotate: [0, -6, 5, -3, 0],
-                }}
-                transition={{
-                  duration: SHUFFLE_MS / 1000,
-                  ease: "easeInOut",
-                  delay: i * 0.03,
-                }}
-              />
-            ))
-          ) : flipTarget ? (
-            <>
-              {/* Outgoing card slides back into the stack. */}
-              <motion.div
-                key={`out-${active.id}`}
-                className="absolute inset-0"
-                style={{ zIndex: 1 }}
-                initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
-                animate={{ x: 10, y: 14, scale: 0.92, opacity: 0 }}
-                transition={{ duration: FLIP_MS / 1000, ease: "easeInOut" }}
-              >
-                <GameCard game={active} onClick={() => {}} />
-              </motion.div>
-
-              {/* Incoming card flips face-up: a standard two-sided flip —
-                  card-back and card-face are separate absolutely
-                  positioned layers with backfaceVisibility hidden, and the
-                  shared parent rotates from 180deg (showing the back) to
-                  0deg (showing the face). Still just a rotateY tween. */}
-              <motion.div
-                key={`in-${flipTarget.game.id}`}
-                className="absolute inset-0"
-                style={{ zIndex: 2, transformStyle: "preserve-3d" }}
-                initial={{ rotateY: 180 }}
-                animate={{ rotateY: 0 }}
-                transition={{ duration: FLIP_MS / 1000, ease: "easeInOut", delay: 0.05 }}
-              >
-                <div
-                  className="absolute inset-0 rounded-2xl border-4 border-white shadow-lg"
-                  style={{
-                    ...CARD_BACK_BACKGROUND,
-                    backfaceVisibility: "hidden",
-                    transform: "rotateY(180deg)",
-                  }}
-                />
-                <div className="absolute inset-0" style={{ backfaceVisibility: "hidden" }}>
-                  <GameCard game={flipTarget.game} onClick={() => {}} />
-                </div>
-              </motion.div>
-            </>
+            // Spinner placeholder shown for SHUFFLE_MS while a new shuffle
+            // order is computed, then the real deck re-mounts.
+            <div
+              className="absolute inset-0 rounded-2xl border-4 border-white shadow-lg flex flex-col items-center justify-center gap-3"
+              style={CARD_BACK_BACKGROUND}
+            >
+              <div className="w-10 h-10 rounded-full border-4 border-white/30 border-t-white animate-spin" />
+              <span className="text-white font-bold text-sm tracking-wide drop-shadow-[1px_1px_0_rgba(0,0,0,0.4)]">
+                Shuffling…
+              </span>
+            </div>
           ) : (
             <>
               {/* Peeking card-backs behind the active card give the "deck"
@@ -171,9 +157,40 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
                   }}
                 />
               ))}
-              <div className="absolute inset-0" style={{ zIndex: peekCount + 1 }}>
-                <GameCard game={active} onClick={() => onSelect(active)} />
-              </div>
+
+              {/* Draggable top card — swipe left/right past the threshold
+                  (or flick fast enough) to send it flying off and reveal
+                  the next one. Keyed by game id so each new active card
+                  is a fresh mount: it gets its own entrance tween (settling
+                  in from the stack) instead of inheriting the outgoing
+                  card's mid-animation transform. */}
+              <motion.div
+                key={active.id}
+                className="absolute inset-0 touch-none"
+                style={{ x, rotate, zIndex: peekCount + 1 }}
+                drag={order.length > 1 && !isBusy ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={1}
+                onDragStart={() => {
+                  wasDragged.current = false;
+                }}
+                onDrag={(_, info) => {
+                  if (Math.abs(info.offset.x) > 5) wasDragged.current = true;
+                }}
+                onDragEnd={handleDragEnd}
+                whileTap={{ scale: 0.98 }}
+                initial={{ scale: 0.95, opacity: 0.85 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <GameCard
+                  game={active}
+                  onClick={() => {
+                    if (wasDragged.current) return;
+                    onSelect(active);
+                  }}
+                />
+              </motion.div>
             </>
           )}
         </div>

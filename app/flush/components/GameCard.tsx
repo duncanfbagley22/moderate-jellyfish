@@ -1,17 +1,17 @@
 "use client";
 
-import { Playfair_Display } from "next/font/google";
+import { Chango } from "next/font/google";
 import type { Game } from "../lib/types";
 import { PLATFORM_LABELS } from "../lib/types";
 import { CHIP } from "../lib/win95";
 
 // Stylized display face for the card's "picture" — the game's own name,
-// set large in an elegant italic serif, standing in for the old
-// two-letter monogram.
-const displayFont = Playfair_Display({
+// set large in a bold poster-style display font, standing in for the old
+// two-letter monogram. Chango only ships a single (400) weight and no
+// italic face, so it's used as-is.
+const displayFont = Chango({
   subsets: ["latin"],
-  weight: ["800"],
-  style: ["italic"],
+  weight: "400",
 });
 
 type GameCardProps = {
@@ -73,7 +73,7 @@ export function GameCard({ game, onClick }: GameCardProps) {
       >
         <div className="flex-1 min-h-0 flex items-center justify-center px-4">
           <span
-            className={`${displayFont.className} italic text-center leading-[1.1] text-white text-2xl sm:text-3xl drop-shadow-[2px_2px_0_rgba(0,0,0,0.35)] line-clamp-4 break-words`}
+            className={`${displayFont.className} text-center leading-[1.1] text-white text-2xl sm:text-3xl drop-shadow-[2px_2px_0_rgba(0,0,0,0.35)] line-clamp-4 break-words`}
           >
             {game.name}
           </span>
