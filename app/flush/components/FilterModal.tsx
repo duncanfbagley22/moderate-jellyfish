@@ -49,15 +49,7 @@ export function FilterModal({
           >
             <TitleBar icon="⚙" label="Filters" onClose={onClose} />
             <div className="overflow-y-auto bg-[#c0c0c0] p-1">
-              <FilterForm
-                filters={filters}
-                onChange={onChange}
-                onSubmit={() => {
-                  onSubmit();
-                  onClose();
-                }}
-                isLoading={isLoading}
-              />
+              <FilterForm filters={filters} onChange={onChange} />
             </div>
           </motion.div>
         </motion.div>
