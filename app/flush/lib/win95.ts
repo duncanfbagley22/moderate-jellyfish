@@ -33,6 +33,14 @@ export const BUTTON_BASE =
   " active:border-t-gray-800 active:border-l-gray-800 active:border-r-white active:border-b-white" +
   " px-3 py-1.5 text-sm font-bold text-black active:translate-y-px touch-manipulation disabled:opacity-60 disabled:pointer-events-none";
 
+// Small square +/- buttons for NumberStepper — same bevel/press language
+// as BUTTON_BASE, just sized to sit flush against a number input.
+export const STEPPER_BUTTON =
+  RAISED_THIN +
+  " active:border-t-gray-800 active:border-l-gray-800 active:border-r-white active:border-b-white" +
+  " w-7 h-7 shrink-0 flex items-center justify-center text-base font-bold text-black leading-none" +
+  " active:translate-y-px touch-manipulation select-none disabled:opacity-60 disabled:pointer-events-none";
+
 // Classic Microsoft card-game back pattern: a navy field with a woven
 // diamond lattice in red/blue, built from overlapping repeating diagonal
 // gradients. Pure CSS, no image asset needed — matches the reference

@@ -60,3 +60,14 @@ export async function insertGame(input: Omit<Game, "id">): Promise<Game> {
   if (error) throw error;
   return data as Game;
 }
+
+/**
+ * Deletes a game row by id. Relies on a "Public delete access to
+ * flush_games" RLS policy (no auth for MVP — same tradeoff as insert).
+ */
+export async function deleteGame(id: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase.from("flush_games").delete().eq("id", id);
+  if (error) throw error;
+}

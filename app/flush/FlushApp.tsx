@@ -72,6 +72,14 @@ export default function FlushApp() {
     setGames((prev) => [...prev, newGame]);
   }
 
+  // Mirrors handleGameAdded: drop the deleted game out of local state
+  // rather than re-querying, and close RulesModal since the game it was
+  // showing no longer exists.
+  function handleGameDeleted(id: string) {
+    setGames((prev) => prev.filter((g) => g.id !== id));
+    setSelectedGame(null);
+  }
+
   return (
     <div
       className="h-dvh w-full overflow-hidden flex flex-col items-center gap-2 p-2 sm:p-4"
@@ -129,7 +137,11 @@ export default function FlushApp() {
         )}
       </div>
 
-      <RulesModal game={selectedGame} onClose={() => setSelectedGame(null)} />
+      <RulesModal
+        game={selectedGame}
+        onClose={() => setSelectedGame(null)}
+        onDeleted={handleGameDeleted}
+      />
       <AddGameForm
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
