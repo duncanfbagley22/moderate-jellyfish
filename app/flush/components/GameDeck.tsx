@@ -178,14 +178,20 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
                   if (Math.abs(info.offset.x) > 5) wasDragged.current = true;
                 }}
                 onDragEnd={handleDragEnd}
-                // Primary tap-to-open trigger. Motion's own tap gesture
-                // correctly tells a stationary tap apart from a drag on
-                // both mouse and touch — unlike a plain DOM onClick, which
-                // is unreliable here on mobile: once `drag` claims the
-                // pointer sequence, touch browsers often don't fire a
-                // synthetic click afterwards even for a tap that never
-                // moved.
+                // Primary tap-to-open trigger — but Motion's `onTap`
+                // does NOT automatically ignore a drag on the same
+                // element once `drag="x"` is enabled: a pointerup at the
+                // end of a small drag (that snaps back) or even a full
+                // swipe still fires onTap. Gate it on the same
+                // `wasDragged` flag the onClick fallback below uses, and
+                // reset it once consumed here so a later plain tap (one
+                // with no onDragStart at all) isn't blocked by a stale
+                // flag left over from a previous swipe.
                 onTap={() => {
+                  if (wasDragged.current) {
+                    wasDragged.current = false;
+                    return;
+                  }
                   if (!isBusy) onSelect(active);
                 }}
                 whileTap={{ scale: 0.98 }}
