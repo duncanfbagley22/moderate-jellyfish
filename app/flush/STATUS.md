@@ -48,7 +48,7 @@ project rather than looking for a file.
 - Add Game: modal form (`AddGameForm.tsx`) inserts into Supabase via
   `insertGame()` in `lib/db.ts`. Requires the "Public insert access to
   flush_games" RLS policy (no auth for MVP, by design).
-- Delete Game: `RulesModal.tsx` has a "🗑 Delete Game" button that opens
+- Delete Game: `RulesModal.tsx` has a "Delete Game" button that opens
   `ConfirmDeleteModal.tsx` (a second, higher-z-index Win95 dialog stacked on
   top); confirming calls `deleteGame()` in `lib/db.ts` and removes the game
   from local state. Requires the "Public delete access to flush_games" RLS

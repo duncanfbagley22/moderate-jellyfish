@@ -11,7 +11,7 @@ type TitleBarProps = {
 const DECOY_BUTTON =
   "w-5 h-5 flex items-center justify-center text-[10px] font-bold text-black bg-[#c0c0c0] border-2 border-t-white border-l-white border-r-gray-800 border-b-gray-800 leading-none shrink-0";
 
-export function TitleBar({ icon = "🃏", label, onClose }: TitleBarProps) {
+export function TitleBar({ icon = "", label, onClose }: TitleBarProps) {
   return (
     <div className={TITLE_BAR}>
       <span className="flex items-center gap-1.5 text-sm font-bold truncate">

@@ -66,19 +66,19 @@ export function RulesModal({ game, onClose, onDeleted }: RulesModalProps) {
               onClick={(e) => e.stopPropagation()}
               className={`${RAISED} w-full max-w-lg max-h-[85vh] flex flex-col text-black`}
             >
-              <TitleBar icon="🃏" label={game.name} onClose={onClose} />
+              <TitleBar icon="" label={game.name} onClose={onClose} />
               <div className="p-4 flex flex-col gap-3 overflow-y-auto bg-[#c0c0c0]">
                 <div className="flex flex-wrap gap-2 text-xs font-bold">
                   <span className={CHIP}>
-                    👥{" "}
+                    {" "}
                     {game.min_players === game.max_players
                       ? game.min_players
                       : `${game.min_players}-${game.max_players}`}
                   </span>
-                  <span className={CHIP}>⏱ {game.time_estimate_mins} min</span>
+                  <span className={CHIP}>{game.time_estimate_mins} min</span>
                   {game.platform.map((p) => (
                     <span key={p} className={CHIP}>
-                      {p === "face cards" ? "🂡 Face Cards" : "✏️ Pen & Paper"}
+                      {p === "face cards" ? "Face Cards" : "Pen & Paper"}
                     </span>
                   ))}
                 </div>
@@ -90,7 +90,7 @@ export function RulesModal({ game, onClose, onDeleted }: RulesModalProps) {
                   onClick={() => setIsConfirmOpen(true)}
                   className={`${BUTTON_BASE} text-red-800 self-start mt-1`}
                 >
-                  🗑 Delete Game
+                  Delete Game
                 </button>
               </div>
             </motion.div>

@@ -1,17 +1,16 @@
 "use client";
 
-import { Chango } from "next/font/google";
+import { Tinos } from "next/font/google";
 import type { Game } from "../lib/types";
 import { PLATFORM_LABELS } from "../lib/types";
 import { CHIP } from "../lib/win95";
 
-// Stylized display face for the card's "picture" — the game's own name,
-// set large in a bold poster-style display font, standing in for the old
-// two-letter monogram. Chango only ships a single (400) weight and no
-// italic face, so it's used as-is.
-const displayFont = Chango({
+// Classic card-index serif for the game name — stands in for a rank,
+// styled after the plain, traditional typography on real Windows
+// Solitaire/Hearts/FreeCell card faces rather than a poster display font.
+const indexFont = Tinos({
   subsets: ["latin"],
-  weight: "400",
+  weight: "700",
 });
 
 type GameCardProps = {
@@ -19,22 +18,17 @@ type GameCardProps = {
   onClick: () => void;
 };
 
-// One consistent card template (not a chooser) — a rounded, colorful
-// playing-card face instead of a Win95 window, inspired by the classic
-// Solitaire card-back/face art look. Each game gets a deterministic accent
-// color derived from its id purely for visual variety; the template
-// itself never changes, per "no options for now, just pick one."
-//
-// Sized to fill its parent (h-full w-full) — the parent enforces a fixed
-// 5:7 portrait aspect ratio, so this card is always portrait regardless of
-// viewport shape.
-const CARD_FACES: { base: string; edge: string }[] = [
-  { base: "#1c4fd8", edge: "#0e2f8f" }, // royal blue
-  { base: "#0e9488", edge: "#0a6960" }, // teal
-  { base: "#c2203f", edge: "#84152c" }, // red
-  { base: "#d99a12", edge: "#976b0d" }, // gold
-  { base: "#2f8f3f", edge: "#1f602a" }, // green
-  { base: "#7d2fa8", edge: "#551f75" }, // purple
+// Each game gets a deterministic ink color + a suit-like glyph — the same
+// trick a real deck uses to feel like one coherent set while every card
+// stays distinguishable (four suits × many ranks, one visual language).
+// The template itself never changes, only this pairing.
+const CARD_FACES: { ink: string; glyph: string }[] = [
+  { ink: "#1c4fd8", glyph: "♠" },
+  { ink: "#0e9488", glyph: "♣" },
+  { ink: "#c2203f", glyph: "♥" },
+  { ink: "#d99a12", glyph: "★" },
+  { ink: "#2f8f3f", glyph: "♦" },
+  { ink: "#7d2fa8", glyph: "●" },
 ];
 
 function hashString(str: string): number {
@@ -43,6 +37,36 @@ function hashString(str: string): number {
     h = (h * 31 + str.charCodeAt(i)) >>> 0;
   }
   return h;
+}
+
+// Small suit-glyph mark shown top-left and, rotated 180°, bottom-right —
+// the corner-index treatment real playing cards use so the card reads
+// right-side up no matter which way it's held.
+function CornerIndex({
+  glyph,
+  ink,
+  flipped,
+}: {
+  glyph: string;
+  ink: string;
+  flipped?: boolean;
+}) {
+  return (
+    <span
+      className="absolute text-lg sm:text-xl leading-none select-none"
+      style={{
+        color: ink,
+        top: flipped ? undefined : 8,
+        left: flipped ? undefined : 8,
+        bottom: flipped ? 8 : undefined,
+        right: flipped ? 8 : undefined,
+        transform: flipped ? "rotate(180deg)" : undefined,
+      }}
+      aria-hidden
+    >
+      {glyph}
+    </span>
+  );
 }
 
 export function GameCard({ game, onClick }: GameCardProps) {
@@ -68,23 +92,36 @@ export function GameCard({ game, onClick }: GameCardProps) {
       className="h-full w-full cursor-pointer select-none touch-manipulation rounded-2xl bg-white p-2 shadow-[0_12px_28px_rgba(0,0,0,0.35)] flex flex-col"
     >
       <div
-        className="rounded-xl overflow-hidden flex flex-col text-black h-full min-h-0"
-        style={{ background: `linear-gradient(180deg, ${face.base}, ${face.edge})` }}
+        className="relative rounded-xl overflow-hidden flex flex-col text-black h-full min-h-0 border-2"
+        style={{ background: "#fdf8ec", borderColor: face.ink }}
       >
-        <div className="flex-1 min-h-0 flex items-center justify-center px-4">
+        <CornerIndex glyph={face.glyph} ink={face.ink} />
+        <CornerIndex glyph={face.glyph} ink={face.ink} flipped />
+
+        <div className="flex-1 min-h-0 relative flex items-center justify-center px-6">
+          {/* Faint oversized glyph watermark, standing in for a card's
+              center pip arrangement — texture, not a focal point. */}
           <span
-            className={`${displayFont.className} text-center leading-[1.1] text-white text-2xl sm:text-3xl drop-shadow-[2px_2px_0_rgba(0,0,0,0.35)] line-clamp-4 break-words`}
+            className="absolute text-[10rem] sm:text-[12rem] leading-none opacity-[0.08] select-none"
+            style={{ color: face.ink }}
+            aria-hidden
+          >
+            {face.glyph}
+          </span>
+          <span
+            className={`${indexFont.className} relative text-center leading-tight text-2xl sm:text-3xl line-clamp-4 break-words`}
+            style={{ color: face.ink }}
           >
             {game.name}
           </span>
         </div>
         <div
-          className="shrink-0 bg-[#fdf8ec] px-3 py-2.5 flex flex-col gap-1.5 border-t-4"
-          style={{ borderColor: face.edge }}
+          className="shrink-0 bg-[#fdf8ec] px-3 py-2.5 flex flex-col gap-1.5 border-t-2"
+          style={{ borderColor: face.ink }}
         >
           <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-            <span className={CHIP}>👥 {playerLabel}</span>
-            <span className={CHIP}>⏱ {game.time_estimate_mins} min</span>
+            <span className={CHIP}>{playerLabel}</span>
+            <span className={CHIP}>{game.time_estimate_mins} min</span>
             {game.platform.map((p) => (
               <span key={p} className={CHIP}>
                 {PLATFORM_LABELS[p]}

@@ -7,8 +7,8 @@ export type PlatformFilter = Platform | "either";
 export const PLATFORM_VALUES: Platform[] = ["face cards", "pen & paper"];
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
-  "face cards": "🂡 Face Cards",
-  "pen & paper": "✏️ Pen & Paper",
+  "face cards": "Face Cards",
+  "pen & paper": "Pen & Paper",
 };
 
 export interface Game {

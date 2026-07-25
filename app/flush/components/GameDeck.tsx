@@ -243,7 +243,7 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
           className={BUTTON_BASE}
           disabled={isBusy}
         >
-          {isShuffling ? "Shuffling…" : "🔀 Shuffle"}
+          {isShuffling ? "Shuffling…" : "Shuffle"}
         </button>
       </div>
     </div>
