@@ -225,7 +225,7 @@ export function GameDeck({ games, onSelect }: GameDeckProps) {
         >
           ◀
         </button>
-        <span className="text-xs font-bold text-black px-2 min-w-[52px] text-center">
+        <span className="text-xs font-bold text-black px-2 min-w-13 text-center">
           {isBusy ? "···" : `${activeIndex + 1} / ${order.length}`}
         </span>
         <button

@@ -109,7 +109,7 @@ export function GameCard({ game, onClick }: GameCardProps) {
             {face.glyph}
           </span>
           <span
-            className={`${indexFont.className} relative text-center leading-tight text-2xl sm:text-3xl line-clamp-4 break-words`}
+            className={`${indexFont.className} relative text-center leading-tight text-2xl sm:text-3xl line-clamp-4 wrap-break-word`}
             style={{ color: face.ink }}
           >
             {game.name}
