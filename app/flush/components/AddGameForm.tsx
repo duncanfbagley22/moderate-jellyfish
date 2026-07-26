@@ -6,6 +6,7 @@ import type { Game, Platform } from "../lib/types";
 import { PLATFORM_VALUES, PLATFORM_LABELS } from "../lib/types";
 import { RAISED, SUNKEN_THIN, BUTTON_BASE } from "../lib/win95";
 import { TitleBar } from "./TitleBar";
+import { NumberStepper } from "./NumberStepper";
 import { insertGame } from "../lib/db";
 
 type AddGameFormProps = {
@@ -115,58 +116,44 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
                 />
               </label>
 
-              <div className="flex items-center gap-3">
-                <label className="flex-1 flex flex-col gap-1 text-xs font-bold">
+              <div className="flex items-center gap-4">
+                <label className="flex flex-col gap-1 text-xs font-bold">
                   Min Players
-                  <input
-                    type="number"
+                  <NumberStepper
+                    value={form.minPlayers}
+                    onChange={(v) =>
+                      setForm((p) => ({ ...p, minPlayers: v }))
+                    }
                     min={1}
                     max={99}
-                    inputMode="numeric"
-                    value={form.minPlayers}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        minPlayers: Math.max(1, Number(e.target.value) || 1),
-                      }))
-                    }
-                    className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
+                    ariaLabel="Min players"
                   />
                 </label>
-                <label className="flex-1 flex flex-col gap-1 text-xs font-bold">
+                <label className="flex flex-col gap-1 text-xs font-bold">
                   Max Players
-                  <input
-                    type="number"
+                  <NumberStepper
+                    value={form.maxPlayers}
+                    onChange={(v) =>
+                      setForm((p) => ({ ...p, maxPlayers: v }))
+                    }
                     min={1}
                     max={99}
-                    inputMode="numeric"
-                    value={form.maxPlayers}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        maxPlayers: Math.max(1, Number(e.target.value) || 1),
-                      }))
-                    }
-                    className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
+                    ariaLabel="Max players"
                   />
                 </label>
               </div>
 
               <label className="flex flex-col gap-1 text-xs font-bold">
                 Time Estimate (minutes)
-                <input
-                  type="number"
+                <NumberStepper
+                  value={form.timeEstimateMins}
+                  onChange={(v) =>
+                    setForm((p) => ({ ...p, timeEstimateMins: v }))
+                  }
                   min={1}
                   max={999}
-                  inputMode="numeric"
-                  value={form.timeEstimateMins}
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      timeEstimateMins: Math.max(1, Number(e.target.value) || 1),
-                    }))
-                  }
-                  className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
+                  displayWidthClassName="w-12"
+                  ariaLabel="Time estimate in minutes"
                 />
               </label>
 

@@ -2,7 +2,8 @@
 
 import type { GameFilters, PlatformFilter } from "../lib/types";
 import { PLATFORM_VALUES, PLATFORM_LABELS } from "../lib/types";
-import { RAISED, SUNKEN_THIN } from "../lib/win95";
+import { RAISED } from "../lib/win95";
+import { NumberStepper } from "./NumberStepper";
 
 type FilterFormProps = {
   filters: GameFilters;
@@ -24,37 +25,25 @@ export function FilterForm({ filters, onChange }: FilterFormProps) {
     <div className={`${RAISED} p-2 flex flex-wrap items-end gap-2 text-black`}>
       <label className="flex flex-col gap-0.5 text-[10px] font-bold">
         Players
-        <input
-          type="number"
+        <NumberStepper
+          value={filters.players}
+          onChange={(v) => onChange({ players: v })}
           min={1}
           max={99}
-          inputMode="numeric"
-          value={filters.players}
-          onChange={(e) =>
-            onChange({ players: Math.max(1, Number(e.target.value) || 1) })
-          }
-          className={`${SUNKEN_THIN} px-2 py-1 text-sm w-16 touch-manipulation`}
+          ariaLabel="Players"
         />
       </label>
 
       <label className="flex flex-col gap-0.5 text-[10px] font-bold">
         Minutes
-        <input
-          type="number"
+        <NumberStepper
+          value={filters.timeAvailableMins}
+          onChange={(v) => onChange({ timeAvailableMins: v })}
           min={MINUTES_STEP}
           max={999}
           step={MINUTES_STEP}
-          inputMode="numeric"
-          value={filters.timeAvailableMins}
-          onChange={(e) => {
-            const raw = Number(e.target.value) || MINUTES_STEP;
-            const snapped = Math.max(
-              MINUTES_STEP,
-              Math.round(raw / MINUTES_STEP) * MINUTES_STEP,
-            );
-            onChange({ timeAvailableMins: snapped });
-          }}
-          className={`${SUNKEN_THIN} px-2 py-1 text-sm w-16 touch-manipulation`}
+          displayWidthClassName="w-12"
+          ariaLabel="Minutes available"
         />
       </label>
 

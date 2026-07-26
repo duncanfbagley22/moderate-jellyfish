@@ -8,28 +8,34 @@ type NumberStepperProps = {
   min: number;
   max: number;
   step?: number;
-  inputWidthClassName?: string;
+  displayWidthClassName?: string;
+  ariaLabel?: string;
 };
 
-// Always-visible +/- buttons alongside the number input. Native number
-// input spin arrows don't render on mobile (iOS/Android just show the
-// on-screen keyboard, no steppers), so this is what makes these fields
-// usable with a tap on a phone. The input itself is still directly
-// editable for anyone who'd rather type — clamped the same either way.
+// Tap-only stepper — the value is a plain, non-interactive display
+// between two +/- buttons, not an editable input. Nothing here can
+// summon the mobile on-screen keyboard, by design (native number-input
+// spin arrows don't render on mobile anyway, so this replaces the old
+// approach of an editable input plus buttons).
 export function NumberStepper({
   value,
   onChange,
   min,
   max,
   step = 1,
-  inputWidthClassName = "w-12",
+  displayWidthClassName = "w-10",
+  ariaLabel,
 }: NumberStepperProps) {
   function clamp(n: number) {
     return Math.min(max, Math.max(min, n));
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div
+      className="flex items-center gap-1"
+      role="group"
+      aria-label={ariaLabel}
+    >
       <button
         type="button"
         onClick={() => onChange(clamp(value - step))}
@@ -39,16 +45,12 @@ export function NumberStepper({
       >
         −
       </button>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => onChange(clamp(Number(e.target.value) || min))}
-        className={`${SUNKEN_THIN} px-1 py-1 text-sm text-center touch-manipulation ${inputWidthClassName}`}
-      />
+      <span
+        className={`${SUNKEN_THIN} px-1 py-1 text-sm text-center font-bold select-none touch-manipulation ${displayWidthClassName}`}
+        aria-live="polite"
+      >
+        {value}
+      </span>
       <button
         type="button"
         onClick={() => onChange(clamp(value + step))}

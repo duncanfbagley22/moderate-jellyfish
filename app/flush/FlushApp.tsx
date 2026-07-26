@@ -120,7 +120,7 @@ export default function FlushApp() {
 
         {!error && hasSearched && !isLoading && games.length === 0 && (
           <div className={`${RAISED} w-full text-black`}>
-            <TitleBar icon="🚫" label="No Matches" />
+            <TitleBar icon="" label="No Matches" />
             <div className="p-4 bg-[#c0c0c0] flex flex-col gap-3 items-center text-center">
               <p className="text-sm">
                 No games fit that player count, time, and platform combo.
