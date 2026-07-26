@@ -20,6 +20,9 @@ export interface Game {
   platform: Platform[];
   rules_short: string;
   rules_long: string;
+  // Optional link to an official rules page, app store listing, etc. —
+  // shown in the expanded rules view when present.
+  url: string | null;
 }
 
 export interface GameFilters {

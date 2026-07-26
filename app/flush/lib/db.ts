@@ -14,7 +14,7 @@ export async function fetchGames(filters: GameFilters): Promise<Game[]> {
   let query = supabase
     .from("flush_games")
     .select(
-      "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long",
+      "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long, url",
     )
     .lte("min_players", filters.players)
     .gte("max_players", filters.players)
@@ -51,9 +51,10 @@ export async function insertGame(input: Omit<Game, "id">): Promise<Game> {
       platform: input.platform,
       rules_short: input.rules_short,
       rules_long: input.rules_long,
+      url: input.url,
     })
     .select(
-      "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long",
+      "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long, url",
     )
     .single();
 

@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   platform: [] as Platform[],
   rulesShort: "",
   rulesLong: "",
+  url: "",
 };
 
 export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
@@ -65,6 +66,7 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
         platform: form.platform,
         rules_short: form.rulesShort.trim(),
         rules_long: form.rulesLong.trim(),
+        url: form.url.trim() || null,
       });
       onAdded(created);
       handleClose();
@@ -213,6 +215,19 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
                   rows={5}
                   placeholder="Shows in the expanded card view."
                   className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation resize-none`}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-xs font-bold">
+                Link (optional)
+                <input
+                  type="url"
+                  value={form.url}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, url: e.target.value }))
+                  }
+                  placeholder="https://..."
+                  className={`${SUNKEN_THIN} px-2 py-1.5 text-sm w-full touch-manipulation`}
                 />
               </label>
 

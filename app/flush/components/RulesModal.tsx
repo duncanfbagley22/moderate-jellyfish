@@ -85,6 +85,16 @@ export function RulesModal({ game, onClose, onDeleted }: RulesModalProps) {
                 <p className="text-sm leading-relaxed whitespace-pre-line">
                   {game.rules_long}
                 </p>
+                {game.url && (
+                  <a
+                    href={game.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-bold text-blue-800 underline underline-offset-2 break-all"
+                  >
+                    {game.url}
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsConfirmOpen(true)}
