@@ -18,17 +18,15 @@ type GameCardProps = {
   onClick: () => void;
 };
 
-// Each game gets a deterministic ink color + a suit-like glyph — the same
-// trick a real deck uses to feel like one coherent set while every card
-// stays distinguishable (four suits × many ranks, one visual language).
-// The template itself never changes, only this pairing.
+// Each game gets a deterministic suit — the actual four, in their actual
+// colors, nothing invented. Less variety than a wider color palette would
+// give, but it's what makes this read as a real deck rather than a
+// designed one.
 const CARD_FACES: { ink: string; glyph: string }[] = [
-  { ink: "#1c4fd8", glyph: "♠" },
-  { ink: "#0e9488", glyph: "♣" },
+  { ink: "#1a1a1a", glyph: "♠" },
+  { ink: "#1a1a1a", glyph: "♣" },
   { ink: "#c2203f", glyph: "♥" },
-  { ink: "#d99a12", glyph: "★" },
-  { ink: "#2f8f3f", glyph: "♦" },
-  { ink: "#7d2fa8", glyph: "●" },
+  { ink: "#c2203f", glyph: "♦" },
 ];
 
 function hashString(str: string): number {
