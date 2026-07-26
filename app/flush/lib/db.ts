@@ -63,6 +63,40 @@ export async function insertGame(input: Omit<Game, "id">): Promise<Game> {
 }
 
 /**
+ * Updates an existing game row by id. Relies on the "Public update access
+ * to flush_games" RLS policy (no auth for MVP — same tradeoff as
+ * insert/delete). Returns the updated row so the caller can drop it
+ * straight into local state without a refetch.
+ */
+export async function updateGame(
+  id: string,
+  input: Omit<Game, "id">,
+): Promise<Game> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("flush_games")
+    .update({
+      name: input.name,
+      min_players: input.min_players,
+      max_players: input.max_players,
+      time_estimate_mins: input.time_estimate_mins,
+      platform: input.platform,
+      rules_short: input.rules_short,
+      rules_long: input.rules_long,
+      url: input.url,
+    })
+    .eq("id", id)
+    .select(
+      "id, name, min_players, max_players, time_estimate_mins, platform, rules_short, rules_long, url",
+    )
+    .single();
+
+  if (error) throw error;
+  return data as Game;
+}
+
+/**
  * Deletes a game row by id. Relies on a "Public delete access to
  * flush_games" RLS policy (no auth for MVP — same tradeoff as insert).
  */

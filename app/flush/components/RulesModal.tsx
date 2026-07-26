@@ -12,11 +12,12 @@ type RulesModalProps = {
   game: Game | null;
   onClose: () => void;
   onDeleted: (id: string) => void;
+  onEdit: (game: Game) => void;
 };
 
 // Simple opacity/scale fade — no physics, no layout-shared-element tricks.
 // Keeps this snappy on mobile per the project's animation constraints.
-export function RulesModal({ game, onClose, onDeleted }: RulesModalProps) {
+export function RulesModal({ game, onClose, onDeleted, onEdit }: RulesModalProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -95,13 +96,22 @@ export function RulesModal({ game, onClose, onDeleted }: RulesModalProps) {
                     {game.url}
                   </a>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setIsConfirmOpen(true)}
-                  className={`${BUTTON_BASE} text-red-800 self-start mt-1`}
-                >
-                  Delete Game
-                </button>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(game)}
+                    className={BUTTON_BASE}
+                  >
+                    Edit Game
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmOpen(true)}
+                    className={`${BUTTON_BASE} text-red-800`}
+                  >
+                    Delete Game
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

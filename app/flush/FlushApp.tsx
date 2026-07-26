@@ -30,8 +30,40 @@ export default function FlushApp() {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
 
   const isFirstRun = useRef(true);
+
+  // The h-dvh + overflow-hidden on the wrapper below only stops *this*
+  // div from scrolling — it doesn't stop the page itself. html/body have
+  // no scroll lock by default (other sub-apps in this repo need normal
+  // scrolling), and on iOS Safari in particular the page can still
+  // rubber-band/bounce vertically even when nothing here overflows. Lock
+  // html + body for as long as this route is mounted, and restore
+  // whatever was there before on unmount so navigating to another
+  // sub-app doesn't inherit the lock.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehaviorY,
+      bodyOverscroll: body.style.overscrollBehaviorY,
+    };
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehaviorY = "none";
+    body.style.overscrollBehaviorY = "none";
+
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overscrollBehaviorY = prev.htmlOverscroll;
+      body.style.overscrollBehaviorY = prev.bodyOverscroll;
+    };
+  }, []);
 
   async function runSearch(nextFilters: GameFilters) {
     setIsLoading(true);
@@ -65,19 +97,36 @@ export default function FlushApp() {
     setFilters((prev) => ({ ...prev, ...patch }));
   }
 
-  // Newly added games are dropped straight into the current deck rather
-  // than re-querying — instant feedback, even if the new game doesn't
-  // happen to match the currently-set filters.
-  function handleGameAdded(newGame: Game) {
-    setGames((prev) => [...prev, newGame]);
+  // Add and edit share one form (AddGameForm) and one save callback —
+  // whether a row is new or existing, the parent just needs to reconcile
+  // it into `games` by id.
+  function handleGameSaved(saved: Game) {
+    setGames((prev) =>
+      prev.some((g) => g.id === saved.id)
+        ? prev.map((g) => (g.id === saved.id ? saved : g))
+        : [...prev, saved],
+    );
   }
 
-  // Mirrors handleGameAdded: drop the deleted game out of local state
+  // Mirrors handleGameSaved: drop the deleted game out of local state
   // rather than re-querying, and close RulesModal since the game it was
   // showing no longer exists.
   function handleGameDeleted(id: string) {
     setGames((prev) => prev.filter((g) => g.id !== id));
     setSelectedGame(null);
+  }
+
+  // Opens the edit form for the game currently shown in RulesModal, and
+  // closes RulesModal itself — only one modal is ever open at a time
+  // (aside from the delete-confirm stack inside RulesModal).
+  function handleEditRequested(game: Game) {
+    setSelectedGame(null);
+    setEditingGame(game);
+  }
+
+  function handleFormClose() {
+    setIsAddOpen(false);
+    setEditingGame(null);
   }
 
   return (
@@ -141,11 +190,13 @@ export default function FlushApp() {
         game={selectedGame}
         onClose={() => setSelectedGame(null)}
         onDeleted={handleGameDeleted}
+        onEdit={handleEditRequested}
       />
       <AddGameForm
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onAdded={handleGameAdded}
+        isOpen={isAddOpen || editingGame !== null}
+        onClose={handleFormClose}
+        onSaved={handleGameSaved}
+        editingGame={editingGame}
       />
     </div>
   );

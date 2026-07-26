@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Game, Platform } from "../lib/types";
 import { PLATFORM_VALUES, PLATFORM_LABELS } from "../lib/types";
 import { RAISED, SUNKEN_THIN, BUTTON_BASE } from "../lib/win95";
 import { TitleBar } from "./TitleBar";
 import { NumberStepper } from "./NumberStepper";
-import { insertGame } from "../lib/db";
+import { insertGame, updateGame } from "../lib/db";
 
 type AddGameFormProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAdded: (game: Game) => void;
+  // Called with the saved row on success — both add and edit go through
+  // this one callback. The parent tells the two apart by id: a new id
+  // means append, an id already in the list means replace in place.
+  onSaved: (game: Game) => void;
+  // When set, the form opens pre-filled for that game and submits go
+  // through updateGame instead of insertGame — same form, same
+  // validation, same layout either way. Pass null/undefined for the
+  // plain "add a new game" flow.
+  editingGame?: Game | null;
 };
 
 const EMPTY_FORM = {
@@ -26,10 +34,39 @@ const EMPTY_FORM = {
   url: "",
 };
 
-export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
+export function AddGameForm({
+  isOpen,
+  onClose,
+  onSaved,
+  editingGame,
+}: AddGameFormProps) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // This component stays mounted the whole time (AnimatePresence just
+  // toggles its visible content), so re-derive form state from
+  // editingGame every time the modal opens rather than only on first
+  // mount — otherwise a second "edit" open would still show whatever
+  // was left over from the previous open.
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(null);
+    if (editingGame) {
+      setForm({
+        name: editingGame.name,
+        minPlayers: editingGame.min_players,
+        maxPlayers: editingGame.max_players,
+        timeEstimateMins: editingGame.time_estimate_mins,
+        platform: editingGame.platform,
+        rulesShort: editingGame.rules_short,
+        rulesLong: editingGame.rules_long,
+        url: editingGame.url ?? "",
+      });
+    } else {
+      setForm(EMPTY_FORM);
+    }
+  }, [isOpen, editingGame]);
 
   function togglePlatform(p: Platform) {
     setForm((prev) => ({
@@ -59,7 +96,7 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
     setIsSubmitting(true);
     setError(null);
     try {
-      const created = await insertGame({
+      const payload = {
         name: form.name.trim(),
         min_players: form.minPlayers,
         max_players: form.maxPlayers,
@@ -68,8 +105,11 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
         rules_short: form.rulesShort.trim(),
         rules_long: form.rulesLong.trim(),
         url: form.url.trim() || null,
-      });
-      onAdded(created);
+      };
+      const saved = editingGame
+        ? await updateGame(editingGame.id, payload)
+        : await insertGame(payload);
+      onSaved(saved);
       handleClose();
     } catch {
       setError("Couldn't save that game. Try again.");
@@ -99,7 +139,11 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
             onClick={(e) => e.stopPropagation()}
             className={`${RAISED} w-full max-w-lg max-h-[85vh] flex flex-col text-black`}
           >
-            <TitleBar icon="➕" label="Add a Game" onClose={handleClose} />
+            <TitleBar
+              icon={editingGame ? "\u270f\ufe0f" : "\u2795"}
+              label={editingGame ? "Edit Game" : "Add a Game"}
+              onClose={handleClose}
+            />
             <form
               onSubmit={handleSubmit}
               className="p-4 flex flex-col gap-3 overflow-y-auto bg-[#c0c0c0]"
@@ -228,7 +272,11 @@ export function AddGameForm({ isOpen, onClose, onAdded }: AddGameFormProps) {
                   disabled={isSubmitting}
                   className={BUTTON_BASE}
                 >
-                  {isSubmitting ? "Saving..." : "Add to Deck"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : editingGame
+                      ? "Save Changes"
+                      : "Add to Deck"}
                 </button>
                 <button type="button" onClick={handleClose} className={BUTTON_BASE}>
                   Cancel
