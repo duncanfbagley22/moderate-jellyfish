@@ -193,14 +193,6 @@ function FullTextModal({
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
   function handleBodyScroll(e: React.UIEvent<HTMLDivElement>) {
     setIsScrolled(e.currentTarget.scrollTop > 40);
   }
