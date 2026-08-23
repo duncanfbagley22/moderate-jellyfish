@@ -193,6 +193,14 @@ function FullTextModal({
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
 
+  useEffect(() => {
+    const previousScrollY = window.scrollY;
+    window.scrollTo(0, previousScrollY + 1);
+    return () => {
+      window.scrollTo(0, previousScrollY);
+    };
+  }, []);
+
   function handleBodyScroll(e: React.UIEvent<HTMLDivElement>) {
     setIsScrolled(e.currentTarget.scrollTop > 40);
   }

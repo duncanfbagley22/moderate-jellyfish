@@ -21,6 +21,7 @@
   justify-content: center;
   padding: .5rem;
   padding-top: calc(env(safe-area-inset-top, 0px) + 2rem);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
 }
 
 .modalContainer {
@@ -118,7 +119,7 @@
 }
 
 .modalArticleContent {
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
 }
 
 /* Tailwind's Preflight reset zeroes out default margins on p/ul/ol/h1-6/etc.
