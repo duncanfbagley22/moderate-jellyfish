@@ -44,6 +44,30 @@ export interface ArticleToSummarize {
   raw_text: string | null
 }
 
+const MAX_RETRIES = 3
+const BASE_DELAY_MS = 10000 // 10s, 20s, 40s
+
+function isRetryableError(err: unknown): boolean {
+  const status = (err as { status?: number })?.status
+  const message = err instanceof Error ? err.message : String(err)
+  return status === 429 || status === 503 || /\b429\b|\b503\b/.test(message)
+}
+
+async function generateWithRetry(prompt: string) {
+  let attempt = 0
+  while (true) {
+    try {
+      return await model.generateContent(prompt)
+    } catch (err) {
+      if (!isRetryableError(err) || attempt >= MAX_RETRIES) throw err
+      const delay = BASE_DELAY_MS * 2 ** attempt
+      console.warn(`[summarize] Retryable error (attempt ${attempt + 1}/${MAX_RETRIES}), waiting ${delay}ms: ${err}`)
+      await new Promise(res => setTimeout(res, delay))
+      attempt++
+    }
+  }
+}
+
 /**
  * Summarizes a batch of articles via Gemini 2.5 Flash.
  * Skips articles that already have summaries or have no raw text.
@@ -73,7 +97,7 @@ export async function summarizeArticles(
     await new Promise(res => setTimeout(res, 5000))
 
     try {
-      const result = await model.generateContent(PROMPT(article.raw_text!))
+      const result = await generateWithRetry(PROMPT(article.raw_text!))
       const raw = result.response.text().trim()
       const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
 
