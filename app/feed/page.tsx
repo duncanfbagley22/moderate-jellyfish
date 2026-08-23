@@ -191,6 +191,8 @@ function FullTextModal({
   article: Article;
   onClose: () => void;
 }) {
+  const [isScrolled, setIsScrolled] = useState(false);
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -198,6 +200,10 @@ function FullTextModal({
       document.body.style.overflow = previousOverflow;
     };
   }, []);
+
+  function handleBodyScroll(e: React.UIEvent<HTMLDivElement>) {
+    setIsScrolled(e.currentTarget.scrollTop > 40);
+  }
 
   return (
     <div onClick={onClose} className={`${classes.modalOverlay}`}>
@@ -219,22 +225,31 @@ function FullTextModal({
           </button>
         </div>
 
-        <div className={classes.modalHeader}>
-          <span className={classes.modalSource}>
-            {article.sources?.name ?? "Unknown"}
-          </span>
-          <h2 className={classes.modalTitle}>{article.title ?? article.url}</h2>
-          {article.author && (
-            <p className={classes.modalAuthor}>By {article.author}</p>
-          )}
-        </div>
+        <div
+          className={classes.modalBody}
+          onScroll={handleBodyScroll}
+        >
+          <div
+            className={`${classes.modalHeader} ${isScrolled ? classes.modalHeaderScrolled : ""}`}
+          >
+            <span className={classes.modalSource}>
+              {article.sources?.name ?? "Unknown"}
+            </span>
+            <h2 className={classes.modalTitle}>
+              {article.title ?? article.url}
+            </h2>
+            {article.author && (
+              <p className={classes.modalAuthor}>By {article.author}</p>
+            )}
+          </div>
 
-        <div className={classes.modalBody}>
-          {article.raw_text ? (
-            <ReactMarkdown>{stripJinaHeader(article.raw_text)}</ReactMarkdown>
-          ) : (
-            <em style={{ color: "#888" }}>No full text available.</em>
-          )}
+          <div className={classes.modalArticleContent}>
+            {article.raw_text ? (
+              <ReactMarkdown>{stripJinaHeader(article.raw_text)}</ReactMarkdown>
+            ) : (
+              <em style={{ color: "#888" }}>No full text available.</em>
+            )}
+          </div>
         </div>
       </div>
     </div>
