@@ -205,6 +205,20 @@ function FullTextModal({
         onClick={(e) => e.stopPropagation()}
         className={classes.modalContainer}
       >
+        <div className={classes.modalTopBar}>
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={classes.modalOriginalLink}
+          >
+            Read Original →
+          </a>
+          <button onClick={onClose} className={classes.modalCloseBtn}>
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+
         <div className={classes.modalHeader}>
           <span className={classes.modalSource}>
             {article.sources?.name ?? "Unknown"}
@@ -215,30 +229,12 @@ function FullTextModal({
           )}
         </div>
 
-        <button onClick={onClose} className={classes.modalCloseBtn}>
-          <X size={18} strokeWidth={2} />
-        </button>
-
         <div className={classes.modalBody}>
           {article.raw_text ? (
             <ReactMarkdown>{stripJinaHeader(article.raw_text)}</ReactMarkdown>
           ) : (
             <em style={{ color: "#888" }}>No full text available.</em>
           )}
-        </div>
-
-        <div className={classes.modalFooter}>
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={classes.modalOriginalLink}
-          >
-            Read Original →
-          </a>
-          <button onClick={onClose} className={classes.modalCloseFooterBtn}>
-            Close
-          </button>
         </div>
       </div>
     </div>

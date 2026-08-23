@@ -20,6 +20,7 @@
   align-items: center;
   justify-content: center;
   padding: .5rem;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 2rem);
 }
 
 .modalContainer {
@@ -33,10 +34,18 @@
   position: relative;
 }
 
+.modalTopBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #1a1a1a;
+  background: #f5f0e8;
+}
+
 .modalHeader {
   padding: 1.25rem 1.5rem 1rem;
   border-bottom: 1px solid #1a1a1a;
-  padding-right: 3rem;
 }
 
 .modalSource {
@@ -64,9 +73,6 @@
 }
 
 .modalCloseBtn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -131,32 +137,12 @@
   color: #555;
 }
 
-.modalFooter {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #1a1a1a;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .modalOriginalLink {
   font-family: var(--font-im-fell), serif;
   font-size: 0.8rem;
   font-style: italic;
   color: #555;
   text-decoration: underline;
-}
-
-.modalCloseFooterBtn {
-  font-family: var(--font-playfair), serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.4rem 1.2rem;
-  border: 2px solid #1a1a1a;
-  background: #1a1a1a;
-  color: #f5f0e8;
-  cursor: pointer;
 }
 
 /* --- ArticleCard Component --- */
