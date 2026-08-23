@@ -82,10 +82,9 @@ export function calcDur(s: string, w: string) {
 }
 
 export function worstOff(entry: SleepEntry, cfg: SleepConfig) {
-  return Math.max(
-    Math.abs(calcOffset(entry.sleep, cfg.targetSleep)),
-    Math.abs(calcOffset(entry.wake, cfg.targetWake)),
-  );
+  const sleepOff = Math.max(0, calcOffset(entry.sleep, cfg.targetSleep)); // early bedtime always meets goal
+  const wakeOff = Math.abs(calcOffset(entry.wake, cfg.targetWake));
+  return Math.max(sleepOff, wakeOff);
 }
 
 export function heatStyle(entry: SleepEntry, cfg: SleepConfig) {
