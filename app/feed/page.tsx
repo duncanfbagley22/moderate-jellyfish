@@ -191,6 +191,14 @@ function FullTextModal({
   article: Article;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div onClick={onClose} className={`${classes.modalOverlay}`}>
       <div
