@@ -7,9 +7,39 @@ import supabase from './db'
 
 const FULL_TEXT_MIN_LENGTH = 500 // chars below which we try Jina for full text
 const JINA_DELAY_MS = 3000       // delay between Jina fetches to respect rate limits
+const PAGE_SIZE = 1000           // Supabase/PostgREST caps a single select at 1000 rows by default
 
 async function sleep(ms: number) {
   return new Promise(res => setTimeout(res, ms))
+}
+
+/**
+ * Fetches every row from a table/column selection, paging past Supabase's
+ * default 1000-row cap. Safe regardless of how large the table grows.
+ */
+async function fetchAllRows<T>(table: string, columns: string): Promise<T[]> {
+  const rows: T[] = []
+  let from = 0
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (error) {
+      throw new Error(`[article_feed] Failed to fetch ${table}: ${error.message}`)
+    }
+
+    const page = (data ?? []) as T[]
+    rows.push(...page)
+
+    if (page.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+
+  return rows
 }
 
 async function run() {
@@ -81,27 +111,21 @@ async function run() {
   }
 
   // ── Catch-up: summarize all articles missing summaries ───────
-  const { data: allArticles, error: allError } = await supabase
-    .from('articles')
-    .select('id, raw_text')
+  let allArticles: { id: string; raw_text: string | null }[]
+  let existingSummaries: { article_id: string }[]
 
-  if (allError) {
-    console.error('[article_feed] Failed to fetch articles:', allError.message)
+  try {
+    allArticles = await fetchAllRows('articles', 'id, raw_text')
+    existingSummaries = await fetchAllRows('summaries', 'article_id')
+  } catch (err) {
+    console.error((err as Error).message)
     return
   }
 
-  const { data: existingSummaries, error: sumError } = await supabase
-    .from('summaries')
-    .select('article_id')
+  const summarizedIds = new Set(existingSummaries.map(s => s.article_id))
+  const unsummarized = allArticles.filter(a => !summarizedIds.has(a.id))
 
-  if (sumError) {
-    console.error('[article_feed] Failed to fetch summaries:', sumError.message)
-    return
-  }
-
-  const summarizedIds = new Set(existingSummaries?.map(s => s.article_id) ?? [])
-  const unsummarized = (allArticles ?? []).filter(a => !summarizedIds.has(a.id))
-
+  console.log(`[article_feed] ${allArticles.length} total articles, ${existingSummaries.length} total summaries`)
   console.log(`[article_feed] ${unsummarized.length} articles need summaries`)
 
   await summarizeArticles(unsummarized)
